@@ -39,6 +39,13 @@
 - EOD report viewer.
 - Tablet sync status.
 
+Current implemented baseline:
+
+- Firebase Email/Password login.
+- Firestore user and branch loading.
+- Firestore-backed menu item creation/listing.
+- Firestore-backed inventory item creation/listing.
+
 ## 5. Testing
 
 - Offline order entry.
@@ -49,4 +56,3 @@
 - EOD expected versus actual count.
 - Sync after reconnecting.
 - No duplicate records after retrying sync.
-

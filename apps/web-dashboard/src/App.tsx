@@ -15,12 +15,23 @@ import {
   LogIn,
   LogOut,
   PackagePlus,
+  Plus,
   Settings,
   ShoppingCart,
   Utensils,
 } from 'lucide-react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
-import { doc, getDoc, type Timestamp } from 'firebase/firestore'
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  where,
+  type Timestamp,
+} from 'firebase/firestore'
 import './App.css'
 import sevenMbLogo from './assets/7mb-logo.svg'
 import { auth, db } from './lib/firebase'
@@ -41,71 +52,31 @@ type Branch = {
   createdAt?: Timestamp
 }
 
-type MenuItem = {
+type MenuItemRecord = {
+  id: string
+  branchId: string
   code: string
   name: string
   category: string
-  price: number
-  status: 'Ready' | 'Draft'
-  setup: string
+  sellingPrice: number
+  seniorPwdPrice?: number
+  status: 'draft' | 'ready' | 'inactive'
+  setupNotes?: string
 }
 
-type InventoryItem = {
+type InventoryItemRecord = {
+  id: string
+  branchId: string
   name: string
-  stock: string
-  threshold: string
-  status: 'OK' | 'Reorder' | 'Critical'
+  category: string
+  unit: string
+  buyingCost: number
+  currentStock: number
+  lowStockThreshold: number
+  active: boolean
 }
 
-const menuItems: MenuItem[] = [
-  {
-    code: 'HK1',
-    name: 'Regular Noodles + 2 pcs Siomai',
-    category: 'Noodles',
-    price: 55,
-    status: 'Ready',
-    setup: 'Needs siomai choice',
-  },
-  {
-    code: 'HK2',
-    name: 'Regular Noodles + 2 pcs Sharksfin/Japanese',
-    category: 'Noodles',
-    price: 59,
-    status: 'Ready',
-    setup: 'Needs premium choice',
-  },
-  {
-    code: 'HK3',
-    name: 'Jumbo Noodles + 4 pcs Siomai',
-    category: 'Noodles',
-    price: 100,
-    status: 'Draft',
-    setup: 'Recipe review',
-  },
-  {
-    code: 'HK7',
-    name: 'Rice Toppings + 4 pcs Siomai',
-    category: 'Rice Meals',
-    price: 65,
-    status: 'Ready',
-    setup: 'Needs siomai choice',
-  },
-  {
-    code: 'HK9',
-    name: 'Siopao Asado',
-    category: 'Dimsum',
-    price: 40,
-    status: 'Ready',
-    setup: 'Fixed item',
-  },
-]
-
-const inventoryItems: InventoryItem[] = [
-  { name: 'Chow mein noodles', stock: '12 kg', threshold: '8 kg', status: 'OK' },
-  { name: 'Pork siomai', stock: '42 pcs', threshold: '60 pcs', status: 'Reorder' },
-  { name: 'Regular lids', stock: '18 pcs', threshold: '40 pcs', status: 'Critical' },
-  { name: 'Sweet brown sauce', stock: '0.7 gal', threshold: '0.5 gal', status: 'OK' },
-]
+type ActiveSection = 'Overview' | 'Menu' | 'Inventory' | 'Recipes' | 'Reports' | 'Sync' | 'Settings'
 
 const navItems = [
   { label: 'Overview', icon: LayoutDashboard },
@@ -131,6 +102,22 @@ function getLoginErrorMessage(error: unknown) {
   }
 
   return 'Login failed. Check the email and password, then try again.'
+}
+
+function getStockStatus(item: InventoryItemRecord) {
+  if (!item.active) {
+    return 'Inactive'
+  }
+
+  if (item.currentStock <= 0) {
+    return 'Critical'
+  }
+
+  if (item.currentStock <= item.lowStockThreshold) {
+    return 'Reorder'
+  }
+
+  return 'OK'
 }
 
 function LoginScreen() {
@@ -167,6 +154,7 @@ function LoginScreen() {
             autoComplete="email"
             inputMode="email"
             onChange={(event) => setEmail(event.target.value)}
+            placeholder="Enter email"
             type="email"
             value={email}
           />
@@ -210,7 +198,110 @@ function SetupWarning({ message }: { message: string }) {
 }
 
 function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }) {
+  const [activeSection, setActiveSection] = useState<ActiveSection>('Overview')
+  const [menuItems, setMenuItems] = useState<MenuItemRecord[]>([])
+  const [inventoryItems, setInventoryItems] = useState<InventoryItemRecord[]>([])
+  const [menuForm, setMenuForm] = useState({
+    code: '',
+    name: '',
+    category: 'Noodles',
+    sellingPrice: '',
+    seniorPwdPrice: '',
+    status: 'draft',
+  })
+  const [inventoryForm, setInventoryForm] = useState({
+    name: '',
+    category: 'Ingredient',
+    unit: 'pcs',
+    buyingCost: '',
+    currentStock: '',
+    lowStockThreshold: '',
+  })
+  const [formMessage, setFormMessage] = useState('')
   const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
+  const reorderCount = inventoryItems.filter((item) => getStockStatus(item) === 'Reorder' || getStockStatus(item) === 'Critical').length
+  const draftCount = menuItems.filter((item) => item.status === 'draft').length
+
+  useEffect(() => {
+    const menuQuery = query(collection(db, 'menuItems'), where('branchId', '==', branch.id))
+    const inventoryQuery = query(collection(db, 'inventoryItems'), where('branchId', '==', branch.id))
+
+    const unsubscribeMenu = onSnapshot(menuQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as MenuItemRecord)
+        .sort((first, second) => first.code.localeCompare(second.code))
+      setMenuItems(nextItems)
+    })
+
+    const unsubscribeInventory = onSnapshot(inventoryQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as InventoryItemRecord)
+        .sort((first, second) => first.name.localeCompare(second.name))
+      setInventoryItems(nextItems)
+    })
+
+    return () => {
+      unsubscribeMenu()
+      unsubscribeInventory()
+    }
+  }, [branch.id])
+
+  async function handleCreateMenuItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    await addDoc(collection(db, 'menuItems'), {
+      branchId: branch.id,
+      code: menuForm.code.trim().toUpperCase(),
+      name: menuForm.name.trim(),
+      category: menuForm.category,
+      sellingPrice: Number(menuForm.sellingPrice),
+      seniorPwdPrice: menuForm.seniorPwdPrice ? Number(menuForm.seniorPwdPrice) : null,
+      status: menuForm.status,
+      setupNotes: 'Recipe setup pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+
+    setMenuForm({
+      code: '',
+      name: '',
+      category: 'Noodles',
+      sellingPrice: '',
+      seniorPwdPrice: '',
+      status: 'draft',
+    })
+    setFormMessage('Menu item saved.')
+  }
+
+  async function handleCreateInventoryItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    await addDoc(collection(db, 'inventoryItems'), {
+      branchId: branch.id,
+      name: inventoryForm.name.trim(),
+      category: inventoryForm.category,
+      unit: inventoryForm.unit.trim(),
+      buyingCost: Number(inventoryForm.buyingCost),
+      currentStock: Number(inventoryForm.currentStock),
+      lowStockThreshold: Number(inventoryForm.lowStockThreshold),
+      supplierPriceType: 'discounted',
+      active: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+
+    setInventoryForm({
+      name: '',
+      category: 'Ingredient',
+      unit: 'pcs',
+      buyingCost: '',
+      currentStock: '',
+      lowStockThreshold: '',
+    })
+    setFormMessage('Inventory item saved.')
+  }
 
   return (
     <main className="app-shell">
@@ -224,10 +315,15 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
         </div>
 
         <nav className="nav-list" aria-label="Dashboard navigation">
-          {navItems.map((item, index) => {
+          {navItems.map((item) => {
             const Icon = item.icon
             return (
-              <button className={index === 0 ? 'nav-item active' : 'nav-item'} key={item.label}>
+              <button
+                className={activeSection === item.label ? 'nav-item active' : 'nav-item'}
+                key={item.label}
+                onClick={() => setActiveSection(item.label as ActiveSection)}
+                type="button"
+              >
                 <Icon size={18} />
                 <span>{item.label}</span>
               </button>
@@ -260,102 +356,311 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           <article className="metric-card">
             <ShoppingCart size={22} />
             <p>Orders Today</p>
-            <strong>126</strong>
+            <strong>0</strong>
           </article>
           <article className="metric-card">
             <CircleDollarSign size={22} />
             <p>Synced Sales</p>
-            <strong>{money(12680)}</strong>
+            <strong>{money(0)}</strong>
           </article>
           <article className="metric-card warning">
             <AlertTriangle size={22} />
             <p>Reorder Alerts</p>
-            <strong>2</strong>
+            <strong>{reorderCount}</strong>
           </article>
           <article className="metric-card">
             <ClipboardList size={22} />
             <p>Setup Checks</p>
-            <strong>3 drafts</strong>
+            <strong>{draftCount} drafts</strong>
           </article>
         </section>
 
-        <section className="content-grid">
-          <article className="panel menu-panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Setup</p>
-                <h2>Menu items</h2>
-              </div>
-              <button className="primary-button">
-                <PackagePlus size={18} />
-                Add item
-              </button>
-            </div>
+        {activeSection === 'Overview' ? (
+          <section className="content-grid">
+            <MenuListPanel menuItems={menuItems.slice(0, 5)} onAdd={() => setActiveSection('Menu')} />
+            <InventoryAlertsPanel inventoryItems={inventoryItems} />
+            <SetupFlowPanel />
+          </section>
+        ) : null}
 
-            <div className="table-list">
-              {menuItems.map((item) => (
-                <div className="table-row" key={item.code}>
-                  <div className="item-code">{item.code}</div>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <p>
-                      {item.category} - {item.setup}
-                    </p>
-                  </div>
-                  <div className="price">{money(item.price)}</div>
-                  <span className={item.status === 'Ready' ? 'badge ready' : 'badge draft'}>
-                    {item.status}
-                  </span>
+        {activeSection === 'Menu' ? (
+          <section className="screen-grid">
+            <article className="panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Setup</p>
+                  <h2>Add menu item</h2>
                 </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="panel side-panel">
-            <div className="panel-header compact">
-              <div>
-                <p className="eyebrow">Operations</p>
-                <h2>Inventory alerts</h2>
+                <PackagePlus size={22} />
               </div>
-              <ArrowDownUp size={20} />
-            </div>
+              <form className="form-grid" onSubmit={handleCreateMenuItem}>
+                <label>
+                  Code
+                  <input
+                    onChange={(event) => setMenuForm((form) => ({ ...form, code: event.target.value }))}
+                    placeholder="HK10"
+                    required
+                    value={menuForm.code}
+                  />
+                </label>
+                <label>
+                  Name
+                  <input
+                    onChange={(event) => setMenuForm((form) => ({ ...form, name: event.target.value }))}
+                    placeholder="Regular Noodles + 2 pcs Siomai"
+                    required
+                    value={menuForm.name}
+                  />
+                </label>
+                <label>
+                  Category
+                  <select
+                    onChange={(event) => setMenuForm((form) => ({ ...form, category: event.target.value }))}
+                    value={menuForm.category}
+                  >
+                    <option>Noodles</option>
+                    <option>Rice Meals</option>
+                    <option>Dimsum</option>
+                    <option>Drinks</option>
+                    <option>Add-ons</option>
+                  </select>
+                </label>
+                <label>
+                  Selling price
+                  <input
+                    min="0"
+                    onChange={(event) => setMenuForm((form) => ({ ...form, sellingPrice: event.target.value }))}
+                    placeholder="55"
+                    required
+                    type="number"
+                    value={menuForm.sellingPrice}
+                  />
+                </label>
+                <label>
+                  Senior/PWD price
+                  <input
+                    min="0"
+                    onChange={(event) => setMenuForm((form) => ({ ...form, seniorPwdPrice: event.target.value }))}
+                    placeholder="44"
+                    type="number"
+                    value={menuForm.seniorPwdPrice}
+                  />
+                </label>
+                <label>
+                  Status
+                  <select
+                    onChange={(event) => setMenuForm((form) => ({ ...form, status: event.target.value }))}
+                    value={menuForm.status}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="ready">Ready</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </label>
+                <button className="primary-button form-submit" type="submit">
+                  <Plus size={18} />
+                  Save menu item
+                </button>
+              </form>
+              {formMessage ? <p className="success-message">{formMessage}</p> : null}
+            </article>
+            <MenuListPanel menuItems={menuItems} onAdd={() => undefined} />
+          </section>
+        ) : null}
 
-            <div className="alert-list">
-              {inventoryItems.map((item) => (
-                <div className="alert-row" key={item.name}>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <p>
-                      {item.stock} left - reorder at {item.threshold}
-                    </p>
-                  </div>
-                  <span className={`stock-status ${item.status.toLowerCase()}`}>
-                    {item.status}
-                  </span>
+        {activeSection === 'Inventory' ? (
+          <section className="screen-grid">
+            <article className="panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Setup</p>
+                  <h2>Add inventory item</h2>
                 </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="panel workflow-panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Next build target</p>
-                <h2>Dashboard setup flow</h2>
+                <Boxes size={22} />
               </div>
-              <ChefHat size={22} />
-            </div>
-            <div className="flow-steps">
-              <span>Menu item</span>
-              <span>Choices</span>
-              <span>Ingredients used</span>
-              <span>Packaging</span>
-              <span>Ready to sell</span>
-            </div>
+              <form className="form-grid" onSubmit={handleCreateInventoryItem}>
+                <label>
+                  Item name
+                  <input
+                    onChange={(event) => setInventoryForm((form) => ({ ...form, name: event.target.value }))}
+                    placeholder="Pork siomai"
+                    required
+                    value={inventoryForm.name}
+                  />
+                </label>
+                <label>
+                  Category
+                  <select
+                    onChange={(event) => setInventoryForm((form) => ({ ...form, category: event.target.value }))}
+                    value={inventoryForm.category}
+                  >
+                    <option>Ingredient</option>
+                    <option>Packaging</option>
+                    <option>Sauce</option>
+                    <option>Drink</option>
+                    <option>Supply</option>
+                  </select>
+                </label>
+                <label>
+                  Unit
+                  <input
+                    onChange={(event) => setInventoryForm((form) => ({ ...form, unit: event.target.value }))}
+                    placeholder="pcs, kg, gal"
+                    required
+                    value={inventoryForm.unit}
+                  />
+                </label>
+                <label>
+                  Buying cost
+                  <input
+                    min="0"
+                    onChange={(event) => setInventoryForm((form) => ({ ...form, buyingCost: event.target.value }))}
+                    placeholder="4"
+                    required
+                    step="0.01"
+                    type="number"
+                    value={inventoryForm.buyingCost}
+                  />
+                </label>
+                <label>
+                  Current stock
+                  <input
+                    min="0"
+                    onChange={(event) => setInventoryForm((form) => ({ ...form, currentStock: event.target.value }))}
+                    placeholder="60"
+                    required
+                    step="0.01"
+                    type="number"
+                    value={inventoryForm.currentStock}
+                  />
+                </label>
+                <label>
+                  Reorder reminder
+                  <input
+                    min="0"
+                    onChange={(event) =>
+                      setInventoryForm((form) => ({ ...form, lowStockThreshold: event.target.value }))
+                    }
+                    placeholder="30"
+                    required
+                    step="0.01"
+                    type="number"
+                    value={inventoryForm.lowStockThreshold}
+                  />
+                </label>
+                <button className="primary-button form-submit" type="submit">
+                  <Plus size={18} />
+                  Save inventory item
+                </button>
+              </form>
+              {formMessage ? <p className="success-message">{formMessage}</p> : null}
+            </article>
+            <InventoryAlertsPanel inventoryItems={inventoryItems} />
+          </section>
+        ) : null}
+
+        {activeSection !== 'Overview' && activeSection !== 'Menu' && activeSection !== 'Inventory' ? (
+          <article className="panel placeholder-panel">
+            <p className="eyebrow">Coming next</p>
+            <h2>{activeSection}</h2>
+            <p className="subtle">This module will be wired after menu and inventory setup are stable.</p>
           </article>
-        </section>
+        ) : null}
       </section>
     </main>
+  )
+}
+
+function MenuListPanel({ menuItems, onAdd }: { menuItems: MenuItemRecord[]; onAdd: () => void }) {
+  return (
+    <article className="panel menu-panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Setup</p>
+          <h2>Menu items</h2>
+        </div>
+        <button className="primary-button" onClick={onAdd} type="button">
+          <PackagePlus size={18} />
+          Add item
+        </button>
+      </div>
+
+      <div className="table-list">
+        {menuItems.length ? (
+          menuItems.map((item) => (
+            <div className="table-row" key={item.id}>
+              <div className="item-code">{item.code}</div>
+              <div>
+                <strong>{item.name}</strong>
+                <p>
+                  {item.category} - {item.setupNotes || 'Recipe setup pending'}
+                </p>
+              </div>
+              <div className="price">{money(item.sellingPrice)}</div>
+              <span className={item.status === 'ready' ? 'badge ready' : 'badge draft'}>{item.status}</span>
+            </div>
+          ))
+        ) : (
+          <p className="empty-state">No menu items yet. Add the current HK menu here first.</p>
+        )}
+      </div>
+    </article>
+  )
+}
+
+function InventoryAlertsPanel({ inventoryItems }: { inventoryItems: InventoryItemRecord[] }) {
+  return (
+    <article className="panel side-panel">
+      <div className="panel-header compact">
+        <div>
+          <p className="eyebrow">Operations</p>
+          <h2>Inventory alerts</h2>
+        </div>
+        <ArrowDownUp size={20} />
+      </div>
+
+      <div className="alert-list">
+        {inventoryItems.length ? (
+          inventoryItems.map((item) => {
+            const status = getStockStatus(item)
+            return (
+              <div className="alert-row" key={item.id}>
+                <div>
+                  <strong>{item.name}</strong>
+                  <p>
+                    {item.currentStock} {item.unit} left - reorder at {item.lowStockThreshold} {item.unit}
+                  </p>
+                </div>
+                <span className={`stock-status ${status.toLowerCase()}`}>{status}</span>
+              </div>
+            )
+          })
+        ) : (
+          <p className="empty-state">No inventory items yet. Add ingredients, packaging, sauces, and supplies.</p>
+        )}
+      </div>
+    </article>
+  )
+}
+
+function SetupFlowPanel() {
+  return (
+    <article className="panel workflow-panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Next build target</p>
+          <h2>Dashboard setup flow</h2>
+        </div>
+        <ChefHat size={22} />
+      </div>
+      <div className="flow-steps">
+        <span>Menu item</span>
+        <span>Choices</span>
+        <span>Ingredients used</span>
+        <span>Packaging</span>
+        <span>Ready to sell</span>
+      </div>
+    </article>
   )
 }
 
