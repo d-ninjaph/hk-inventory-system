@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { FirebaseError } from 'firebase/app'
 import {
   AlertTriangle,
   ArrowDownUp,
@@ -124,6 +125,34 @@ function money(value: number) {
   }).format(value)
 }
 
+function getLoginErrorMessage(error: unknown) {
+  if (!(error instanceof FirebaseError)) {
+    return 'Login failed. Check the email and password, then try again.'
+  }
+
+  if (error.code === 'auth/invalid-credential') {
+    return 'Invalid email or password. Check the Firebase Authentication user and password.'
+  }
+
+  if (error.code === 'auth/user-not-found') {
+    return 'No Firebase Authentication user exists for this email.'
+  }
+
+  if (error.code === 'auth/wrong-password') {
+    return 'Incorrect password for this Firebase Authentication user.'
+  }
+
+  if (error.code === 'auth/operation-not-allowed') {
+    return 'Email/Password sign-in is not enabled in Firebase Authentication.'
+  }
+
+  if (error.code === 'auth/too-many-requests') {
+    return 'Too many failed login attempts. Wait a few minutes before trying again.'
+  }
+
+  return `${error.code}: ${error.message}`
+}
+
 function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -137,8 +166,8 @@ function LoginScreen() {
 
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password)
-    } catch {
-      setError('Login failed. Check the email and password, then try again.')
+    } catch (error) {
+      setError(getLoginErrorMessage(error))
     } finally {
       setIsSubmitting(false)
     }
