@@ -15,6 +15,12 @@ Enable:
 - Firestore Database
 - Firebase Hosting
 
+Manual setup status:
+
+- Authentication should use Email/Password sign-in.
+- Firestore should be created in production mode.
+- Hosting will be deployed from the repo with Firebase CLI.
+
 Recommended Firebase project name:
 
 ```text
@@ -57,4 +63,3 @@ Accounts:
 - Claude Design: UI/UX ideation.
 - Figma: design cleanup and clickable mockups.
 - Google Drive: shared client forms and data collection sheets.
-

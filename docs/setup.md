@@ -16,6 +16,13 @@ npm install
 npm run dev
 ```
 
+From the repository root, these scripts are also available:
+
+```powershell
+npm run dashboard:dev
+npm run dashboard:build
+```
+
 ## Firebase
 
 Create a Firebase project, then copy the web app config into:
@@ -41,8 +48,11 @@ Also enable these Firebase products:
 Deploy Firestore rules and indexes after Firebase CLI setup:
 
 ```powershell
-firebase deploy --only firestore
+npm run firebase:login
+npm run firebase:deploy:rules
 ```
+
+If the Firebase login opens a browser, sign in with the Google account that owns the Firebase project.
 
 ## Hosting
 
@@ -55,9 +65,11 @@ apps/web-dashboard/dist
 Deploy after Firebase CLI setup:
 
 ```powershell
-npm run build
-firebase deploy --only hosting
+npm run firebase:login
+npm run firebase:deploy:hosting
 ```
+
+`firebase-tools` is installed as a project dev dependency, so a global Firebase CLI install is not required.
 
 ## Tablet App
 
