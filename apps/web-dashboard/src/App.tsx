@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowDownUp,
@@ -9,13 +10,35 @@ import {
   ClipboardList,
   Cloud,
   LayoutDashboard,
+  Loader2,
+  LogIn,
+  LogOut,
   PackagePlus,
   Settings,
   ShoppingCart,
   Utensils,
 } from 'lucide-react'
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
+import { doc, getDoc, type Timestamp } from 'firebase/firestore'
 import './App.css'
 import sevenMbLogo from './assets/7mb-logo.svg'
+import { auth, db } from './lib/firebase'
+
+type UserProfile = {
+  displayName: string
+  email: string
+  role: 'owner' | 'admin' | 'staff'
+  branchIds: string[]
+  createdAt?: Timestamp
+}
+
+type Branch = {
+  id: string
+  name: string
+  location: string
+  active: boolean
+  createdAt?: Timestamp
+}
 
 type MenuItem = {
   code: string
@@ -101,7 +124,86 @@ function money(value: number) {
   }).format(value)
 }
 
-function App() {
+function LoginScreen() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setIsSubmitting(true)
+
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password)
+    } catch {
+      setError('Login failed. Check the email and password, then try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <main className="login-page">
+      <form className="login-card" onSubmit={handleSubmit}>
+        <img className="login-logo" src={sevenMbLogo} alt="7Mb logo" />
+        <div>
+          <p className="eyebrow">7Mb Inventory System</p>
+          <h1>Owner login</h1>
+        </div>
+        <label>
+          Email
+          <input
+            autoComplete="email"
+            inputMode="email"
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="digitalninjasph@gmail.com"
+            type="email"
+            value={email}
+          />
+        </label>
+        <label>
+          Password
+          <input
+            autoComplete="current-password"
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Enter password"
+            type="password"
+            value={password}
+          />
+        </label>
+        {error ? <p className="form-error">{error}</p> : null}
+        <button className="primary-button full-width" disabled={isSubmitting} type="submit">
+          {isSubmitting ? <Loader2 className="spin" size={18} /> : <LogIn size={18} />}
+          Sign in
+        </button>
+      </form>
+    </main>
+  )
+}
+
+function LoadingScreen() {
+  return (
+    <main className="loading-page">
+      <Loader2 className="spin" size={28} />
+      Loading dashboard
+    </main>
+  )
+}
+
+function SetupWarning({ message }: { message: string }) {
+  return (
+    <main className="loading-page">
+      <AlertTriangle size={28} />
+      {message}
+    </main>
+  )
+}
+
+function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }) {
+  const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -124,17 +226,25 @@ function App() {
             )
           })}
         </nav>
+
+        <button className="nav-item logout-button" onClick={() => signOut(auth)} type="button">
+          <LogOut size={18} />
+          <span>Sign out</span>
+        </button>
       </aside>
 
       <section className="dashboard">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Hongkong Style Noodles & Dimsum - Cabugao Ilocos</p>
+            <p className="eyebrow">Hongkong Style Noodles & Dimsum - {branch.name}</p>
             <h1>Owner dashboard</h1>
+            <p className="subtle">
+              {profile.displayName} - {profile.role} - {branchStatus}
+            </p>
           </div>
           <div className="sync-pill">
             <Cloud size={18} />
-            Last synced today, 9:15 PM
+            Firestore connected
           </div>
         </header>
 
@@ -239,6 +349,94 @@ function App() {
       </section>
     </main>
   )
+}
+
+function App() {
+  const [authUser, setAuthUser] = useState<User | null>(null)
+  const [branch, setBranch] = useState<Branch | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [isDataLoading, setIsDataLoading] = useState(false)
+  const [setupError, setSetupError] = useState('')
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (user) => {
+      setAuthUser(user)
+      setIsAuthLoading(false)
+    })
+  }, [])
+
+  useEffect(() => {
+    async function loadDashboardData(user: User) {
+      setIsDataLoading(true)
+      setSetupError('')
+      setProfile(null)
+      setBranch(null)
+
+      try {
+        const profileSnap = await getDoc(doc(db, 'users', user.uid))
+
+        if (!profileSnap.exists()) {
+          setSetupError('Your login works, but the matching Firestore user profile was not found.')
+          return
+        }
+
+        const nextProfile = profileSnap.data() as UserProfile
+        setProfile(nextProfile)
+
+        const firstBranchId = nextProfile.branchIds?.[0]
+
+        if (!firstBranchId) {
+          setSetupError('Your user profile has no branch assigned yet.')
+          return
+        }
+
+        const branchSnap = await getDoc(doc(db, 'branches', firstBranchId))
+
+        if (!branchSnap.exists()) {
+          setSetupError(`Branch "${firstBranchId}" was not found in Firestore.`)
+          return
+        }
+
+        setBranch({ id: branchSnap.id, ...(branchSnap.data() as Omit<Branch, 'id'>) })
+      } catch {
+        setSetupError('Could not load dashboard data. Check Firestore rules and the user profile fields.')
+      } finally {
+        setIsDataLoading(false)
+      }
+    }
+
+    if (authUser) {
+      void loadDashboardData(authUser)
+      return
+    }
+
+    setProfile(null)
+    setBranch(null)
+    setSetupError('')
+  }, [authUser])
+
+  if (isAuthLoading) {
+    return <LoadingScreen />
+  }
+
+  if (!authUser) {
+    return <LoginScreen />
+  }
+
+  if (isDataLoading) {
+    return <LoadingScreen />
+  }
+
+  if (setupError) {
+    return <SetupWarning message={setupError} />
+  }
+
+  if (!profile || !branch) {
+    return <LoadingScreen />
+  }
+
+  return <Dashboard branch={branch} profile={profile} />
 }
 
 export default App
