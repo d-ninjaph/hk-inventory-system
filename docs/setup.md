@@ -26,6 +26,12 @@ apps/web-dashboard/.env
 
 Use `apps/web-dashboard/.env.example` as the template.
 
+Current Firebase project:
+
+```text
+hk-inventory-system
+```
+
 Also enable these Firebase products:
 
 - Authentication
