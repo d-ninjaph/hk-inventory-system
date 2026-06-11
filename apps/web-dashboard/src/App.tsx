@@ -180,7 +180,7 @@ function App() {
                   <div>
                     <strong>{item.name}</strong>
                     <p>
-                      {item.category} · {item.setup}
+                      {item.category} - {item.setup}
                     </p>
                   </div>
                   <div className="price">{money(item.price)}</div>
@@ -207,7 +207,7 @@ function App() {
                   <div>
                     <strong>{item.name}</strong>
                     <p>
-                      {item.stock} left · reorder at {item.threshold}
+                      {item.stock} left - reorder at {item.threshold}
                     </p>
                   </div>
                   <span className={`stock-status ${item.status.toLowerCase()}`}>

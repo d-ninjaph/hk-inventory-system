@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerOrAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin'];
+    }
+
+    function isStaff() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['staff', 'owner', 'admin'];
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isOwnerOrAdmin());
+      allow write: if isOwnerOrAdmin();
+    }
+
+    match /branches/{branchId} {
+      allow read: if isStaff();
+      allow write: if isOwnerOrAdmin();
+    }
+
+    match /menuItems/{itemId} {
+      allow read: if isStaff();
+      allow write: if isOwnerOrAdmin();
+    }
+
+    match /inventoryItems/{itemId} {
+      allow read: if isStaff();
+      allow write: if isOwnerOrAdmin();
+    }
+
+    match /recipeComponents/{componentId} {
+      allow read: if isStaff();
+      allow write: if isOwnerOrAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isOwnerOrAdmin();
+    }
+
+    match /stockMovements/{movementId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isOwnerOrAdmin();
+    }
+
+    match /daySessions/{sessionId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isOwnerOrAdmin();
+    }
+
+    match /dailyExpenses/{expenseId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isOwnerOrAdmin();
+    }
+
+    match /syncEvents/{syncEventId} {
+      allow read, create: if isStaff();
+      allow update, delete: if isOwnerOrAdmin();
+    }
+  }
+}
+

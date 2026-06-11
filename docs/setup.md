@@ -26,6 +26,18 @@ apps/web-dashboard/.env
 
 Use `apps/web-dashboard/.env.example` as the template.
 
+Also enable these Firebase products:
+
+- Authentication
+- Firestore Database
+- Hosting
+
+Deploy Firestore rules and indexes after Firebase CLI setup:
+
+```powershell
+firebase deploy --only firestore
+```
+
 ## Hosting
 
 The dashboard build output is configured in `firebase.json`:
@@ -48,4 +60,3 @@ Flutter is not installed yet in the current environment. Install Flutter and And
 ```text
 apps/tablet-app
 ```
-
