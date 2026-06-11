@@ -126,31 +126,11 @@ function money(value: number) {
 }
 
 function getLoginErrorMessage(error: unknown) {
-  if (!(error instanceof FirebaseError)) {
-    return 'Login failed. Check the email and password, then try again.'
+  if (error instanceof FirebaseError && error.code === 'auth/too-many-requests') {
+    return 'Too many failed login attempts. Please wait a few minutes, then try again.'
   }
 
-  if (error.code === 'auth/invalid-credential') {
-    return 'Invalid email or password. Check the Firebase Authentication user and password.'
-  }
-
-  if (error.code === 'auth/user-not-found') {
-    return 'No Firebase Authentication user exists for this email.'
-  }
-
-  if (error.code === 'auth/wrong-password') {
-    return 'Incorrect password for this Firebase Authentication user.'
-  }
-
-  if (error.code === 'auth/operation-not-allowed') {
-    return 'Email/Password sign-in is not enabled in Firebase Authentication.'
-  }
-
-  if (error.code === 'auth/too-many-requests') {
-    return 'Too many failed login attempts. Wait a few minutes before trying again.'
-  }
-
-  return `${error.code}: ${error.message}`
+  return 'Login failed. Check the email and password, then try again.'
 }
 
 function LoginScreen() {
@@ -187,7 +167,6 @@ function LoginScreen() {
             autoComplete="email"
             inputMode="email"
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="digitalninjasph@gmail.com"
             type="email"
             value={email}
           />
