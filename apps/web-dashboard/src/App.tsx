@@ -15,6 +15,7 @@ import {
   Utensils,
 } from 'lucide-react'
 import './App.css'
+import sevenMbLogo from './assets/7mb-logo.svg'
 
 type MenuItem = {
   code: string
@@ -105,10 +106,10 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand-block">
-          <div className="brand-mark">HK</div>
+          <img className="brand-mark" src={sevenMbLogo} alt="7Mb logo" />
           <div>
-            <p>Hongkong Style</p>
-            <strong>Noodles & Dimsum</strong>
+            <p>7Mb</p>
+            <strong>Food & Beverage Station</strong>
           </div>
         </div>
 
@@ -128,7 +129,7 @@ function App() {
       <section className="dashboard">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Cabugao Ilocos branch</p>
+            <p className="eyebrow">Hongkong Style Noodles & Dimsum - Cabugao Ilocos</p>
             <h1>Owner dashboard</h1>
           </div>
           <div className="sync-pill">

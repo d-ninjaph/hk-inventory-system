@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">7Mb Food &amp; Beverage Station</title>
+  <desc id="logoDesc">Red 7MB wordmark with a gold flame and circular accent.</desc>
+  <rect width="240" height="240" rx="28" fill="#fff7e8"/>
+  <path d="M54 164c15 27 40 43 68 43s52-16 67-43" fill="none" stroke="#d71920" stroke-width="14" stroke-linecap="round"/>
+  <path d="M47 156c-13-48 15-97 64-114" fill="none" stroke="#f2ad00" stroke-width="11" stroke-linecap="butt"/>
+  <path d="M150 42c49 17 77 66 64 114" fill="none" stroke="#f2ad00" stroke-width="11" stroke-linecap="butt"/>
+  <path d="M118 42c25 31-13 50-2 86 5-18 26-31 20-57 19 26-3 46-5 65 24-28 41-58-13-94z" fill="#f2ad00"/>
+  <text x="118" y="155" text-anchor="middle" fill="#d71920" font-family="Arial Black, Arial, sans-serif" font-size="72" font-weight="900">7MB</text>
+</svg>

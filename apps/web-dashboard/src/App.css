@@ -24,16 +24,13 @@
 }
 
 .brand-mark {
-  width: 48px;
-  height: 48px;
+  width: 54px;
+  height: 54px;
   border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: #ffd91a;
-  color: #d71920;
-  font-weight: 900;
-  border: 2px solid #ffffff;
-  box-shadow: 4px 4px 0 #d71920;
+  display: block;
+  background: #fff7e8;
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  box-shadow: 4px 4px 0 rgba(215, 25, 32, 0.9);
 }
 
 .brand-block p,
@@ -51,7 +48,8 @@
 
 .brand-block strong {
   display: block;
-  font-size: 1.05rem;
+  max-width: 150px;
+  font-size: 1rem;
 }
 
 .nav-list {
