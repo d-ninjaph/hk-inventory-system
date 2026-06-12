@@ -343,8 +343,63 @@ h2 {
   font-weight: 800;
 }
 
+.recipe-builder {
+  display: grid;
+  gap: 16px;
+}
+
+.recipe-builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #eee2d1;
+  padding-top: 16px;
+}
+
+.recipe-builder-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.recipe-draft-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recipe-draft-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 110px 40px;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid #eee2d1;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbf8f1;
+}
+
+.recipe-draft-row label {
+  display: grid;
+  gap: 7px;
+  color: #4d4238;
+  font-weight: 800;
+}
+
+.line-number {
+  width: 30px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #ffd91a;
+  color: #17120f;
+  font-weight: 900;
+}
+
 .form-grid input,
-.form-grid select {
+.form-grid select,
+.recipe-draft-row input,
+.recipe-draft-row select {
   min-height: 42px;
   width: 100%;
   border: 1px solid #d9cdbc;
@@ -356,13 +411,16 @@ h2 {
 }
 
 .form-grid input:focus,
-.form-grid select:focus {
+.form-grid select:focus,
+.recipe-draft-row input:focus,
+.recipe-draft-row select:focus {
   outline: 3px solid rgba(255, 217, 26, 0.45);
   border-color: #d71920;
 }
 
 .form-grid input::placeholder,
-.login-card input::placeholder {
+.login-card input::placeholder,
+.recipe-draft-row input::placeholder {
   color: #918579;
   font-weight: 400;
 }
@@ -588,5 +646,9 @@ h2 {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .recipe-draft-row {
+    grid-template-columns: 34px minmax(0, 1fr);
   }
 }

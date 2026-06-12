@@ -96,6 +96,12 @@ type RecipeComponentRecord = {
   choiceGroup?: string
 }
 
+type RecipeDraftLine = {
+  id: string
+  inventoryItemId: string
+  quantity: string
+}
+
 type ActiveSection = 'Overview' | 'Menu' | 'Inventory' | 'Recipes' | 'Reports' | 'Sync' | 'Settings'
 
 const navItems = [
@@ -332,13 +338,14 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     currentStock: '',
     lowStockThreshold: '',
   })
-  const [recipeForm, setRecipeForm] = useState({
+  const [recipeBatchForm, setRecipeBatchForm] = useState({
     menuItemId: '',
-    inventoryItemId: '',
-    quantity: '',
     appliesTo: 'base',
     choiceGroup: '',
   })
+  const [recipeDraftLines, setRecipeDraftLines] = useState<RecipeDraftLine[]>([
+    { id: crypto.randomUUID(), inventoryItemId: '', quantity: '' },
+  ])
   const [formMessage, setFormMessage] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
   const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
@@ -490,40 +497,70 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     resetInventoryForm()
   }
 
-  async function handleCreateRecipeComponent(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setFormMessage('')
+  function addRecipeDraftLine() {
+    setRecipeDraftLines((lines) => [...lines, { id: crypto.randomUUID(), inventoryItemId: '', quantity: '' }])
+  }
 
-    const menuItem = menuItems.find((item) => item.id === recipeForm.menuItemId)
-    const inventoryItem = inventoryItems.find((item) => item.id === recipeForm.inventoryItemId)
+  function removeRecipeDraftLine(lineId: string) {
+    setRecipeDraftLines((lines) =>
+      lines.length === 1 ? lines : lines.filter((line) => line.id !== lineId),
+    )
+  }
 
-    if (!menuItem || !inventoryItem) {
-      setFormMessage('Choose a menu item and inventory item first.')
-      return
-    }
+  function updateRecipeDraftLine(lineId: string, field: 'inventoryItemId' | 'quantity', value: string) {
+    setRecipeDraftLines((lines) =>
+      lines.map((line) => (line.id === lineId ? { ...line, [field]: value } : line)),
+    )
+  }
 
-    await addDoc(collection(db, 'recipeComponents'), {
-      branchId: branch.id,
-      menuItemId: menuItem.id,
-      menuItemCode: menuItem.code,
-      inventoryItemId: inventoryItem.id,
-      inventoryItemName: inventoryItem.name,
-      quantity: Number(recipeForm.quantity),
-      unit: inventoryItem.unit,
-      appliesTo: recipeForm.appliesTo,
-      choiceGroup: recipeForm.choiceGroup.trim() || null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-
-    setRecipeForm({
-      menuItemId: menuItem.id,
-      inventoryItemId: '',
-      quantity: '',
+  function resetRecipeBatchForm(menuItemId = recipeBatchForm.menuItemId) {
+    setRecipeBatchForm({
+      menuItemId,
       appliesTo: 'base',
       choiceGroup: '',
     })
-    setFormMessage('Recipe component saved.')
+    setRecipeDraftLines([{ id: crypto.randomUUID(), inventoryItemId: '', quantity: '' }])
+  }
+
+  async function handleCreateRecipeBatch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    const menuItem = menuItems.find((item) => item.id === recipeBatchForm.menuItemId)
+    const validLines = recipeDraftLines
+      .map((line) => ({
+        ...line,
+        inventoryItem: inventoryItems.find((item) => item.id === line.inventoryItemId),
+      }))
+      .filter((line) => line.inventoryItem && Number(line.quantity) > 0)
+
+    if (!menuItem || !validLines.length) {
+      setFormMessage('Choose a menu item and add at least one valid inventory line.')
+      return
+    }
+
+    await Promise.all(
+      validLines.map((line) => {
+        const inventoryItem = line.inventoryItem as InventoryItemRecord
+
+        return addDoc(collection(db, 'recipeComponents'), {
+          branchId: branch.id,
+          menuItemId: menuItem.id,
+          menuItemCode: menuItem.code,
+          inventoryItemId: inventoryItem.id,
+          inventoryItemName: inventoryItem.name,
+          quantity: Number(line.quantity),
+          unit: inventoryItem.unit,
+          appliesTo: recipeBatchForm.appliesTo,
+          choiceGroup: recipeBatchForm.choiceGroup.trim() || null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }),
+    )
+
+    resetRecipeBatchForm(menuItem.id)
+    setFormMessage(`${validLines.length} recipe rule${validLines.length === 1 ? '' : 's'} saved.`)
   }
 
   async function handleDeleteRecipeComponent(componentId: string) {
@@ -903,77 +940,113 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               <div className="panel-header">
                 <div>
                   <p className="eyebrow">Ingredients used</p>
-                  <h2>Add recipe rule</h2>
+                  <h2>Add recipe rules</h2>
                 </div>
                 <BookOpen size={22} />
               </div>
-              <form className="form-grid" onSubmit={handleCreateRecipeComponent}>
-                <label>
-                  Menu item
-                  <select
-                    onChange={(event) => setRecipeForm((form) => ({ ...form, menuItemId: event.target.value }))}
-                    required
-                    value={recipeForm.menuItemId}
-                  >
-                    <option value="">Choose menu item</option>
-                    {menuItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.code} - {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Inventory item
-                  <select
-                    onChange={(event) => setRecipeForm((form) => ({ ...form, inventoryItemId: event.target.value }))}
-                    required
-                    value={recipeForm.inventoryItemId}
-                  >
-                    <option value="">Choose inventory item</option>
-                    {inventoryItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} ({item.unit})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Quantity deducted
-                  <input
-                    min="0"
-                    onChange={(event) => setRecipeForm((form) => ({ ...form, quantity: event.target.value }))}
-                    placeholder="1"
-                    required
-                    step="0.001"
-                    type="number"
-                    value={recipeForm.quantity}
-                  />
-                </label>
-                <label>
-                  Applies to
-                  <select
-                    onChange={(event) => setRecipeForm((form) => ({ ...form, appliesTo: event.target.value }))}
-                    value={recipeForm.appliesTo}
-                  >
-                    <option value="base">Base item</option>
-                    <option value="dine_in">Dine-in only</option>
-                    <option value="take_out">Take-out only</option>
-                    <option value="choice">Required choice</option>
-                    <option value="addon">Add-on</option>
-                  </select>
-                </label>
-                <label>
-                  Choice group
-                  <input
-                    onChange={(event) => setRecipeForm((form) => ({ ...form, choiceGroup: event.target.value }))}
-                    placeholder="Siomai choice"
-                    value={recipeForm.choiceGroup}
-                  />
-                </label>
+              <form className="recipe-builder" onSubmit={handleCreateRecipeBatch}>
+                <div className="form-grid">
+                  <label>
+                    Menu item
+                    <select
+                      onChange={(event) =>
+                        setRecipeBatchForm((form) => ({ ...form, menuItemId: event.target.value }))
+                      }
+                      required
+                      value={recipeBatchForm.menuItemId}
+                    >
+                      <option value="">Choose menu item</option>
+                      {menuItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.code} - {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Applies to
+                    <select
+                      onChange={(event) =>
+                        setRecipeBatchForm((form) => ({ ...form, appliesTo: event.target.value }))
+                      }
+                      value={recipeBatchForm.appliesTo}
+                    >
+                      <option value="base">Base item</option>
+                      <option value="dine_in">Dine-in only</option>
+                      <option value="take_out">Take-out only</option>
+                      <option value="choice">Required choice</option>
+                      <option value="addon">Add-on</option>
+                    </select>
+                  </label>
+                  <label>
+                    Choice group
+                    <input
+                      onChange={(event) =>
+                        setRecipeBatchForm((form) => ({ ...form, choiceGroup: event.target.value }))
+                      }
+                      placeholder="ex: Siomai choice"
+                      value={recipeBatchForm.choiceGroup}
+                    />
+                  </label>
+                </div>
+
+                <div className="recipe-builder-header">
+                  <div>
+                    <p className="eyebrow">Inventory deducted</p>
+                    <h3>Add one or more items</h3>
+                  </div>
+                  <button className="secondary-button" onClick={addRecipeDraftLine} type="button">
+                    <Plus size={18} />
+                    Add row
+                  </button>
+                </div>
+
+                <div className="recipe-draft-list">
+                  {recipeDraftLines.map((line, index) => (
+                    <div className="recipe-draft-row" key={line.id}>
+                      <span className="line-number">{index + 1}</span>
+                      <label>
+                        Inventory item
+                        <select
+                          onChange={(event) => updateRecipeDraftLine(line.id, 'inventoryItemId', event.target.value)}
+                          required
+                          value={line.inventoryItemId}
+                        >
+                          <option value="">Choose inventory item</option>
+                          {inventoryItems.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name} ({item.unit})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Quantity
+                        <input
+                          min="0"
+                          onChange={(event) => updateRecipeDraftLine(line.id, 'quantity', event.target.value)}
+                          placeholder="ex: 1"
+                          required
+                          step="0.001"
+                          type="number"
+                          value={line.quantity}
+                        />
+                      </label>
+                      <button
+                        aria-label="Remove recipe row"
+                        className="icon-button"
+                        onClick={() => removeRecipeDraftLine(line.id)}
+                        type="button"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
                 <button className="primary-button form-submit" type="submit">
                   <Plus size={18} />
-                  Save recipe rule
+                  Save all recipe rules
                 </button>
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
