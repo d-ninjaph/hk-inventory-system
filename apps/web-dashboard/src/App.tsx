@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   Cloud,
+  Database,
   LayoutDashboard,
   Loader2,
   LogIn,
@@ -18,17 +19,20 @@ import {
   Plus,
   Settings,
   ShoppingCart,
+  Trash2,
   Utensils,
 } from 'lucide-react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
   query,
   serverTimestamp,
+  setDoc,
   where,
   type Timestamp,
 } from 'firebase/firestore'
@@ -76,6 +80,19 @@ type InventoryItemRecord = {
   active: boolean
 }
 
+type RecipeComponentRecord = {
+  id: string
+  branchId: string
+  menuItemId: string
+  menuItemCode: string
+  inventoryItemId: string
+  inventoryItemName: string
+  quantity: number
+  unit: string
+  appliesTo: 'base' | 'dine_in' | 'take_out' | 'choice' | 'addon'
+  choiceGroup?: string
+}
+
 type ActiveSection = 'Overview' | 'Menu' | 'Inventory' | 'Recipes' | 'Reports' | 'Sync' | 'Settings'
 
 const navItems = [
@@ -87,6 +104,96 @@ const navItems = [
   { label: 'Sync', icon: Cloud },
   { label: 'Settings', icon: Settings },
 ]
+
+const baselineMenuItems = [
+  ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
+  ['hk2', 'HK2', 'Regular HK Style Noodles + 2 pcs Sharksfin/Japanese', 'Noodles', 59, 47.2],
+  ['hk3', 'HK3', 'Jumbo HK Style Noodles + 4 pcs Siomai', 'Noodles', 100, 80],
+  ['hk4', 'HK4', 'Jumbo HK Style Noodles + 4 pcs Sharksfin/Japanese', 'Noodles', 105, 84],
+  ['hk5', 'HK5', '4 pcs Siomai', 'Dimsum', 50, 40],
+  ['hk6', 'HK6', '4 pcs Sharksfin/Japanese Siomai', 'Dimsum', 55, 44],
+  ['hk7', 'HK7', 'Rice Toppings + 4 pcs Siomai', 'Rice Meals', 65, 52],
+  ['hk8', 'HK8', 'Rice Toppings + 4 pcs Sharksfin/Japanese', 'Rice Meals', 70, 56],
+  ['hk9', 'HK9', 'Siopao Asado', 'Dimsum', 40, 32],
+  ['gulaman-medium', 'GUL-M', 'Black Gulaman Medium', 'Drinks', 20, 16],
+  ['gulaman-large', 'GUL-L', 'Black Gulaman Large', 'Drinks', 25, 20],
+  ['addon-siomai', 'ADD-SIO', 'Additional Pork/Beef/Chicken Siomai or Wanton', 'Add-ons', 10, 8],
+  ['addon-premium', 'ADD-PRE', 'Additional Japanese Siomai or Sharksfin', 'Add-ons', 12, 9.6],
+] as const
+
+const baselineInventoryItems = [
+  ['noodles', 'Chow mein noodles', 'Ingredient', 'kg', 175, 0, 5],
+  ['rice', 'Rice', 'Ingredient', 'serving', 0, 0, 20],
+  ['regular-tumbler', 'Regular tumbler/container', 'Packaging', 'pcs', 3.5, 0, 40],
+  ['jumbo-tumbler', 'Jumbo tumbler/container', 'Packaging', 'pcs', 5.5, 0, 30],
+  ['regular-lid', 'Regular lid', 'Packaging', 'pcs', 3, 0, 40],
+  ['large-lid', 'Large lid', 'Packaging', 'pcs', 5, 0, 30],
+  ['cutlery', 'Cutlery', 'Packaging', 'pcs', 0, 0, 50],
+  ['paper-bag', 'Paper bag', 'Packaging', 'pcs', 0, 0, 30],
+  ['pork-siomai', 'Pork siomai', 'Ingredient', 'pcs', 4, 0, 60],
+  ['beef-siomai', 'Beef siomai', 'Ingredient', 'pcs', 4, 0, 60],
+  ['chicken-siomai', 'Chicken siomai', 'Ingredient', 'pcs', 4, 0, 60],
+  ['wanton', 'Wanton', 'Ingredient', 'pcs', 4, 0, 40],
+  ['sharksfin', 'Sharksfin', 'Ingredient', 'pcs', 6.25, 0, 40],
+  ['japanese-siomai', 'Japanese siomai', 'Ingredient', 'pcs', 6.25, 0, 40],
+  ['siopao-asado', 'Siopao Asado', 'Ingredient', 'pcs', 30, 0, 12],
+  ['teriyaki-sauce', 'Teriyaki sauce', 'Sauce', 'gal', 290, 0, 0.5],
+  ['peanut-mongolian-sauce', 'Peanut Mongolian sauce', 'Sauce', 'gal', 290, 0, 0.5],
+  ['korean-bbq-sauce', 'Korean BBQ sauce', 'Sauce', 'gal', 230, 0, 0.5],
+  ['sweet-brown-sauce', 'Sweet brown sauce', 'Sauce', 'gal', 290, 0, 0.5],
+  ['chili-oil-mild', 'Chili oil mild', 'Sauce', '500ml bottle', 175, 0, 1],
+  ['chili-oil-extra-spicy', 'Chili oil extra spicy', 'Sauce', '500ml bottle', 265, 0, 1],
+  ['gulaman-powder', 'Gulaman powder', 'Ingredient', 'kg', 395, 0, 1],
+  ['caramel-powder', 'Caramel powder', 'Ingredient', 'pcs', 5, 0, 10],
+] as const
+
+const baselineRecipeComponents = [
+  ['hk1', 'noodles', 0.08, 'base', ''],
+  ['hk1', 'pork-siomai', 2, 'choice', 'Siomai choice'],
+  ['hk1', 'beef-siomai', 2, 'choice', 'Siomai choice'],
+  ['hk1', 'chicken-siomai', 2, 'choice', 'Siomai choice'],
+  ['hk1', 'wanton', 2, 'choice', 'Siomai choice'],
+  ['hk1', 'regular-tumbler', 1, 'take_out', ''],
+  ['hk1', 'regular-lid', 1, 'take_out', ''],
+  ['hk1', 'cutlery', 1, 'take_out', ''],
+  ['hk1', 'paper-bag', 1, 'take_out', ''],
+  ['hk2', 'noodles', 0.08, 'base', ''],
+  ['hk2', 'sharksfin', 2, 'choice', 'Premium choice'],
+  ['hk2', 'japanese-siomai', 2, 'choice', 'Premium choice'],
+  ['hk3', 'noodles', 0.12, 'base', ''],
+  ['hk3', 'pork-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk3', 'beef-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk3', 'chicken-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk3', 'wanton', 4, 'choice', 'Siomai choice'],
+  ['hk3', 'jumbo-tumbler', 1, 'take_out', ''],
+  ['hk3', 'large-lid', 1, 'take_out', ''],
+  ['hk4', 'noodles', 0.12, 'base', ''],
+  ['hk4', 'sharksfin', 4, 'choice', 'Premium choice'],
+  ['hk4', 'japanese-siomai', 4, 'choice', 'Premium choice'],
+  ['hk5', 'pork-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk5', 'beef-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk5', 'chicken-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk5', 'wanton', 4, 'choice', 'Siomai choice'],
+  ['hk6', 'sharksfin', 4, 'choice', 'Premium choice'],
+  ['hk6', 'japanese-siomai', 4, 'choice', 'Premium choice'],
+  ['hk7', 'rice', 1, 'base', ''],
+  ['hk7', 'pork-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk7', 'beef-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk7', 'chicken-siomai', 4, 'choice', 'Siomai choice'],
+  ['hk7', 'wanton', 4, 'choice', 'Siomai choice'],
+  ['hk8', 'rice', 1, 'base', ''],
+  ['hk8', 'sharksfin', 4, 'choice', 'Premium choice'],
+  ['hk8', 'japanese-siomai', 4, 'choice', 'Premium choice'],
+  ['hk9', 'siopao-asado', 1, 'base', ''],
+  ['gulaman-medium', 'gulaman-powder', 0.02, 'base', ''],
+  ['gulaman-medium', 'caramel-powder', 1, 'base', ''],
+  ['gulaman-large', 'gulaman-powder', 0.03, 'base', ''],
+  ['gulaman-large', 'caramel-powder', 1, 'base', ''],
+] as const
+
+function branchDocId(branchId: string, seedId: string) {
+  return `${branchId}_${seedId}`
+}
 
 function money(value: number) {
   return new Intl.NumberFormat('en-PH', {
@@ -201,6 +308,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   const [activeSection, setActiveSection] = useState<ActiveSection>('Overview')
   const [menuItems, setMenuItems] = useState<MenuItemRecord[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItemRecord[]>([])
+  const [recipeComponents, setRecipeComponents] = useState<RecipeComponentRecord[]>([])
   const [menuForm, setMenuForm] = useState({
     code: '',
     name: '',
@@ -217,14 +325,22 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     currentStock: '',
     lowStockThreshold: '',
   })
+  const [recipeForm, setRecipeForm] = useState({
+    menuItemId: '',
+    inventoryItemId: '',
+    quantity: '',
+    appliesTo: 'base',
+    choiceGroup: '',
+  })
   const [formMessage, setFormMessage] = useState('')
+  const [isSeeding, setIsSeeding] = useState(false)
   const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
   const reorderCount = inventoryItems.filter((item) => getStockStatus(item) === 'Reorder' || getStockStatus(item) === 'Critical').length
-  const draftCount = menuItems.filter((item) => item.status === 'draft').length
 
   useEffect(() => {
     const menuQuery = query(collection(db, 'menuItems'), where('branchId', '==', branch.id))
     const inventoryQuery = query(collection(db, 'inventoryItems'), where('branchId', '==', branch.id))
+    const recipeQuery = query(collection(db, 'recipeComponents'), where('branchId', '==', branch.id))
 
     const unsubscribeMenu = onSnapshot(menuQuery, (snapshot) => {
       const nextItems = snapshot.docs
@@ -240,9 +356,17 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       setInventoryItems(nextItems)
     })
 
+    const unsubscribeRecipes = onSnapshot(recipeQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as RecipeComponentRecord)
+        .sort((first, second) => first.menuItemCode.localeCompare(second.menuItemCode))
+      setRecipeComponents(nextItems)
+    })
+
     return () => {
       unsubscribeMenu()
       unsubscribeInventory()
+      unsubscribeRecipes()
     }
   }, [branch.id])
 
@@ -301,6 +425,127 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       lowStockThreshold: '',
     })
     setFormMessage('Inventory item saved.')
+  }
+
+  async function handleCreateRecipeComponent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    const menuItem = menuItems.find((item) => item.id === recipeForm.menuItemId)
+    const inventoryItem = inventoryItems.find((item) => item.id === recipeForm.inventoryItemId)
+
+    if (!menuItem || !inventoryItem) {
+      setFormMessage('Choose a menu item and inventory item first.')
+      return
+    }
+
+    await addDoc(collection(db, 'recipeComponents'), {
+      branchId: branch.id,
+      menuItemId: menuItem.id,
+      menuItemCode: menuItem.code,
+      inventoryItemId: inventoryItem.id,
+      inventoryItemName: inventoryItem.name,
+      quantity: Number(recipeForm.quantity),
+      unit: inventoryItem.unit,
+      appliesTo: recipeForm.appliesTo,
+      choiceGroup: recipeForm.choiceGroup.trim() || null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+
+    setRecipeForm({
+      menuItemId: menuItem.id,
+      inventoryItemId: '',
+      quantity: '',
+      appliesTo: 'base',
+      choiceGroup: '',
+    })
+    setFormMessage('Recipe component saved.')
+  }
+
+  async function handleDeleteRecipeComponent(componentId: string) {
+    await deleteDoc(doc(db, 'recipeComponents', componentId))
+    setFormMessage('Recipe component removed.')
+  }
+
+  async function handleSeedBaselineData() {
+    setIsSeeding(true)
+    setFormMessage('')
+
+    try {
+      await Promise.all([
+        ...baselineMenuItems.map(([seedId, code, name, category, sellingPrice, seniorPwdPrice]) =>
+          setDoc(
+            doc(db, 'menuItems', branchDocId(branch.id, seedId)),
+            {
+              branchId: branch.id,
+              code,
+              name,
+              category,
+              sellingPrice,
+              seniorPwdPrice,
+              status: 'draft',
+              setupNotes: 'Starter recipe setup - review before selling',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+          ),
+        ),
+        ...baselineInventoryItems.map(([seedId, name, category, unit, buyingCost, currentStock, lowStockThreshold]) =>
+          setDoc(
+            doc(db, 'inventoryItems', branchDocId(branch.id, seedId)),
+            {
+              branchId: branch.id,
+              name,
+              category,
+              unit,
+              buyingCost,
+              currentStock,
+              lowStockThreshold,
+              supplierPriceType: 'discounted',
+              active: true,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+          ),
+        ),
+      ])
+
+      await Promise.all(
+        baselineRecipeComponents.map(([menuSeedId, inventorySeedId, quantity, appliesTo, choiceGroup]) => {
+          const menuItem = baselineMenuItems.find(([seedId]) => seedId === menuSeedId)
+          const inventoryItem = baselineInventoryItems.find(([seedId]) => seedId === inventorySeedId)
+          const componentId = branchDocId(
+            branch.id,
+            `${menuSeedId}_${inventorySeedId}_${appliesTo}_${choiceGroup || 'base'}`,
+          )
+
+          return setDoc(
+            doc(db, 'recipeComponents', componentId),
+            {
+              branchId: branch.id,
+              menuItemId: branchDocId(branch.id, menuSeedId),
+              menuItemCode: menuItem?.[1] ?? menuSeedId.toUpperCase(),
+              inventoryItemId: branchDocId(branch.id, inventorySeedId),
+              inventoryItemName: inventoryItem?.[1] ?? inventorySeedId,
+              quantity,
+              unit: inventoryItem?.[3] ?? 'pcs',
+              appliesTo,
+              choiceGroup: choiceGroup || null,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+          )
+        }),
+      )
+
+      setFormMessage('Starter HK menu, inventory, and recipe data loaded.')
+    } finally {
+      setIsSeeding(false)
+    }
   }
 
   return (
@@ -370,8 +615,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           </article>
           <article className="metric-card">
             <ClipboardList size={22} />
-            <p>Setup Checks</p>
-            <strong>{draftCount} drafts</strong>
+            <p>Recipe Rules</p>
+            <strong>{recipeComponents.length}</strong>
           </article>
         </section>
 
@@ -559,7 +804,127 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           </section>
         ) : null}
 
-        {activeSection !== 'Overview' && activeSection !== 'Menu' && activeSection !== 'Inventory' ? (
+        {activeSection === 'Recipes' ? (
+          <section className="screen-grid">
+            <article className="panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Ingredients used</p>
+                  <h2>Add recipe rule</h2>
+                </div>
+                <BookOpen size={22} />
+              </div>
+              <form className="form-grid" onSubmit={handleCreateRecipeComponent}>
+                <label>
+                  Menu item
+                  <select
+                    onChange={(event) => setRecipeForm((form) => ({ ...form, menuItemId: event.target.value }))}
+                    required
+                    value={recipeForm.menuItemId}
+                  >
+                    <option value="">Choose menu item</option>
+                    {menuItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code} - {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Inventory item
+                  <select
+                    onChange={(event) => setRecipeForm((form) => ({ ...form, inventoryItemId: event.target.value }))}
+                    required
+                    value={recipeForm.inventoryItemId}
+                  >
+                    <option value="">Choose inventory item</option>
+                    {inventoryItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.unit})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Quantity deducted
+                  <input
+                    min="0"
+                    onChange={(event) => setRecipeForm((form) => ({ ...form, quantity: event.target.value }))}
+                    placeholder="1"
+                    required
+                    step="0.001"
+                    type="number"
+                    value={recipeForm.quantity}
+                  />
+                </label>
+                <label>
+                  Applies to
+                  <select
+                    onChange={(event) => setRecipeForm((form) => ({ ...form, appliesTo: event.target.value }))}
+                    value={recipeForm.appliesTo}
+                  >
+                    <option value="base">Base item</option>
+                    <option value="dine_in">Dine-in only</option>
+                    <option value="take_out">Take-out only</option>
+                    <option value="choice">Required choice</option>
+                    <option value="addon">Add-on</option>
+                  </select>
+                </label>
+                <label>
+                  Choice group
+                  <input
+                    onChange={(event) => setRecipeForm((form) => ({ ...form, choiceGroup: event.target.value }))}
+                    placeholder="Siomai choice"
+                    value={recipeForm.choiceGroup}
+                  />
+                </label>
+                <button className="primary-button form-submit" type="submit">
+                  <Plus size={18} />
+                  Save recipe rule
+                </button>
+              </form>
+              {formMessage ? <p className="success-message">{formMessage}</p> : null}
+            </article>
+            <RecipeListPanel components={recipeComponents} onDelete={handleDeleteRecipeComponent} />
+          </section>
+        ) : null}
+
+        {activeSection === 'Settings' ? (
+          <section className="screen-grid">
+            <article className="panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Starter setup</p>
+                  <h2>Load HK baseline data</h2>
+                </div>
+                <Database size={22} />
+              </div>
+              <p className="subtle">
+                Adds starter menu, inventory, and recipe rules based on the standee and supplier discounted prices.
+                Existing seeded records are updated, not duplicated.
+              </p>
+              <button className="primary-button seed-button" disabled={isSeeding} onClick={handleSeedBaselineData} type="button">
+                {isSeeding ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
+                Load starter data
+              </button>
+              {formMessage ? <p className="success-message">{formMessage}</p> : null}
+            </article>
+            <article className="panel">
+              <p className="eyebrow">Important</p>
+              <h2>Review before live use</h2>
+              <p className="subtle">
+                Sauce usage is intentionally not forced per order because customers can add sauces freely. Track sauce
+                stock through opening and closing counts until the client confirms a standard serving estimate.
+              </p>
+            </article>
+          </section>
+        ) : null}
+
+        {activeSection !== 'Overview' &&
+        activeSection !== 'Menu' &&
+        activeSection !== 'Inventory' &&
+        activeSection !== 'Recipes' &&
+        activeSection !== 'Settings' ? (
           <article className="panel placeholder-panel">
             <p className="eyebrow">Coming next</p>
             <h2>{activeSection}</h2>
@@ -637,6 +1002,53 @@ function InventoryAlertsPanel({ inventoryItems }: { inventoryItems: InventoryIte
           })
         ) : (
           <p className="empty-state">No inventory items yet. Add ingredients, packaging, sauces, and supplies.</p>
+        )}
+      </div>
+    </article>
+  )
+}
+
+function RecipeListPanel({
+  components,
+  onDelete,
+}: {
+  components: RecipeComponentRecord[]
+  onDelete: (componentId: string) => void
+}) {
+  return (
+    <article className="panel menu-panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Ingredients used</p>
+          <h2>Recipe rules</h2>
+        </div>
+        <BookOpen size={20} />
+      </div>
+
+      <div className="recipe-list">
+        {components.length ? (
+          components.map((component) => (
+            <div className="recipe-row" key={component.id}>
+              <div className="item-code">{component.menuItemCode}</div>
+              <div>
+                <strong>{component.inventoryItemName}</strong>
+                <p>
+                  {component.quantity} {component.unit} - {component.appliesTo}
+                  {component.choiceGroup ? ` - ${component.choiceGroup}` : ''}
+                </p>
+              </div>
+              <button
+                aria-label={`Remove ${component.inventoryItemName}`}
+                className="icon-button"
+                onClick={() => onDelete(component.id)}
+                type="button"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="empty-state">No recipe rules yet. Add base ingredients, choices, add-ons, and packaging.</p>
         )}
       </div>
     </article>

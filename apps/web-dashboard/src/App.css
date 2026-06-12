@@ -369,13 +369,15 @@ h2 {
 }
 
 .table-list,
-.alert-list {
+.alert-list,
+.recipe-list {
   display: grid;
   gap: 10px;
 }
 
 .table-row,
-.alert-row {
+.alert-row,
+.recipe-row {
   min-height: 70px;
   display: grid;
   align-items: center;
@@ -394,17 +396,39 @@ h2 {
   grid-template-columns: minmax(0, 1fr) 78px;
 }
 
+.recipe-row {
+  grid-template-columns: 56px minmax(0, 1fr) 40px;
+}
+
 .table-row strong,
-.alert-row strong {
+.alert-row strong,
+.recipe-row strong {
   display: block;
   margin-bottom: 4px;
 }
 
 .table-row p,
-.alert-row p {
+.alert-row p,
+.recipe-row p {
   margin-bottom: 0;
   color: #71665e;
   font-size: 0.88rem;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #ffe2e0;
+  color: #b01820;
+  cursor: pointer;
+}
+
+.seed-button {
+  margin-top: 18px;
 }
 
 .item-code {

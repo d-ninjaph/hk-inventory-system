@@ -45,6 +45,8 @@ Current implemented baseline:
 - Firestore user and branch loading.
 - Firestore-backed menu item creation/listing.
 - Firestore-backed inventory item creation/listing.
+- Firestore-backed recipe/BOM rule creation/listing/removal.
+- Starter HK menu, inventory, and recipe seed action.
 
 ## 5. Testing
 

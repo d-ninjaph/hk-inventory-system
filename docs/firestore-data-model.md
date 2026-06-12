@@ -68,6 +68,13 @@ Key fields:
 - `appliesTo`: `base`, `dine_in`, `take_out`, `choice`, or `addon`
 - `choiceGroup`
 
+Notes:
+
+- `base` applies whenever the menu item is sold.
+- `take_out` applies only for take-out orders.
+- `choice` represents required options, such as pork/beef/chicken/wanton siomai.
+- Sauces are currently tracked as inventory items, but not forced per order because customers can add sauces freely.
+
 ### orders
 
 Stores synced tablet orders.
@@ -138,4 +145,3 @@ Key fields:
 - `status`
 - `pendingRecords`
 - `createdAt`
-
