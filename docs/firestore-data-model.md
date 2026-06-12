@@ -65,6 +65,11 @@ Key fields:
 - `menuItemId`
 - `inventoryItemId`
 - `quantity`
+- `unit`
+- `usageQuantity`
+- `usageUnit`
+- `stockQuantity`
+- `stockUnit`
 - `appliesTo`: `base`, `dine_in`, `take_out`, `choice`, or `addon`
 - `choiceGroup`
 
@@ -74,6 +79,8 @@ Notes:
 - `take_out` applies only for take-out orders.
 - `choice` represents required options, such as pork/beef/chicken/wanton siomai.
 - Sauces are currently tracked as inventory items, but not forced per order because customers can add sauces freely.
+- `usageQuantity`/`usageUnit` are what the admin enters, such as `80 gram`.
+- `stockQuantity`/`stockUnit` are what inventory deducts, such as `0.08 kilo`.
 
 ### orders
 

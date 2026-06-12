@@ -92,6 +92,10 @@ type RecipeComponentRecord = {
   inventoryItemName: string
   quantity: number
   unit: string
+  usageQuantity?: number
+  usageUnit?: string
+  stockQuantity?: number
+  stockUnit?: string
   appliesTo: 'base' | 'dine_in' | 'take_out' | 'choice' | 'addon'
   choiceGroup?: string
 }
@@ -100,6 +104,7 @@ type RecipeDraftLine = {
   id: string
   inventoryItemId: string
   quantity: string
+  usageUnit: string
 }
 
 type ActiveSection = 'Overview' | 'Menu' | 'Inventory' | 'Recipes' | 'Reports' | 'Sync' | 'Settings'
@@ -114,7 +119,7 @@ const navItems = [
   { label: 'Settings', icon: Settings },
 ]
 
-const unitOptions = ['pc', 'tub', 'kilo', 'gallon', 'ml', 'liter'] as const
+const unitOptions = ['pc', 'tub', 'kilo', 'gram', 'gallon', 'ml', 'liter'] as const
 
 const baselineMenuItems = [
   ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
@@ -212,6 +217,38 @@ function money(value: number) {
     currency: 'PHP',
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+function getCompatibleUsageUnits(stockUnit: string) {
+  if (stockUnit === 'kilo') {
+    return ['gram', 'kilo']
+  }
+
+  if (stockUnit === 'liter') {
+    return ['ml', 'liter']
+  }
+
+  return [stockUnit]
+}
+
+function convertToStockUnit(quantity: number, usageUnit: string, stockUnit: string) {
+  if (usageUnit === stockUnit) {
+    return quantity
+  }
+
+  if (usageUnit === 'gram' && stockUnit === 'kilo') {
+    return quantity / 1000
+  }
+
+  if (usageUnit === 'ml' && stockUnit === 'liter') {
+    return quantity / 1000
+  }
+
+  return quantity
+}
+
+function formatQuantity(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
 }
 
 function getLoginErrorMessage(error: unknown) {
@@ -344,7 +381,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     choiceGroup: '',
   })
   const [recipeDraftLines, setRecipeDraftLines] = useState<RecipeDraftLine[]>([
-    { id: crypto.randomUUID(), inventoryItemId: '', quantity: '' },
+    { id: crypto.randomUUID(), inventoryItemId: '', quantity: '', usageUnit: '' },
   ])
   const [formMessage, setFormMessage] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
@@ -498,7 +535,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   }
 
   function addRecipeDraftLine() {
-    setRecipeDraftLines((lines) => [...lines, { id: crypto.randomUUID(), inventoryItemId: '', quantity: '' }])
+    setRecipeDraftLines((lines) => [
+      ...lines,
+      { id: crypto.randomUUID(), inventoryItemId: '', quantity: '', usageUnit: '' },
+    ])
   }
 
   function removeRecipeDraftLine(lineId: string) {
@@ -507,9 +547,20 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     )
   }
 
-  function updateRecipeDraftLine(lineId: string, field: 'inventoryItemId' | 'quantity', value: string) {
+  function updateRecipeDraftLine(lineId: string, field: 'inventoryItemId' | 'quantity' | 'usageUnit', value: string) {
     setRecipeDraftLines((lines) =>
-      lines.map((line) => (line.id === lineId ? { ...line, [field]: value } : line)),
+      lines.map((line) => {
+        if (line.id !== lineId) {
+          return line
+        }
+
+        if (field === 'inventoryItemId') {
+          const inventoryItem = inventoryItems.find((item) => item.id === value)
+          return { ...line, inventoryItemId: value, usageUnit: inventoryItem?.unit ?? '' }
+        }
+
+        return { ...line, [field]: value }
+      }),
     )
   }
 
@@ -519,7 +570,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       appliesTo: 'base',
       choiceGroup: '',
     })
-    setRecipeDraftLines([{ id: crypto.randomUUID(), inventoryItemId: '', quantity: '' }])
+    setRecipeDraftLines([{ id: crypto.randomUUID(), inventoryItemId: '', quantity: '', usageUnit: '' }])
   }
 
   async function handleCreateRecipeBatch(event: React.FormEvent<HTMLFormElement>) {
@@ -549,8 +600,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           menuItemCode: menuItem.code,
           inventoryItemId: inventoryItem.id,
           inventoryItemName: inventoryItem.name,
-          quantity: Number(line.quantity),
+          quantity: convertToStockUnit(Number(line.quantity), line.usageUnit || inventoryItem.unit, inventoryItem.unit),
           unit: inventoryItem.unit,
+          usageQuantity: Number(line.quantity),
+          usageUnit: line.usageUnit || inventoryItem.unit,
+          stockQuantity: convertToStockUnit(Number(line.quantity), line.usageUnit || inventoryItem.unit, inventoryItem.unit),
+          stockUnit: inventoryItem.unit,
           appliesTo: recipeBatchForm.appliesTo,
           choiceGroup: recipeBatchForm.choiceGroup.trim() || null,
           createdAt: serverTimestamp(),
@@ -632,6 +687,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               inventoryItemName: inventoryItem?.[1] ?? inventorySeedId,
               quantity,
               unit: inventoryItem?.[3] ?? 'pcs',
+              usageQuantity: quantity,
+              usageUnit: inventoryItem?.[3] ?? 'pc',
+              stockQuantity: quantity,
+              stockUnit: inventoryItem?.[3] ?? 'pc',
               appliesTo,
               choiceGroup: choiceGroup || null,
               createdAt: serverTimestamp(),
@@ -1003,44 +1062,14 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
 
                 <div className="recipe-draft-list">
                   {recipeDraftLines.map((line, index) => (
-                    <div className="recipe-draft-row" key={line.id}>
-                      <span className="line-number">{index + 1}</span>
-                      <label>
-                        Inventory item
-                        <select
-                          onChange={(event) => updateRecipeDraftLine(line.id, 'inventoryItemId', event.target.value)}
-                          required
-                          value={line.inventoryItemId}
-                        >
-                          <option value="">Choose inventory item</option>
-                          {inventoryItems.map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.name} ({item.unit})
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Quantity
-                        <input
-                          min="0"
-                          onChange={(event) => updateRecipeDraftLine(line.id, 'quantity', event.target.value)}
-                          placeholder="ex: 1"
-                          required
-                          step="0.001"
-                          type="number"
-                          value={line.quantity}
-                        />
-                      </label>
-                      <button
-                        aria-label="Remove recipe row"
-                        className="icon-button"
-                        onClick={() => removeRecipeDraftLine(line.id)}
-                        type="button"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    <RecipeDraftRow
+                      inventoryItems={inventoryItems}
+                      key={line.id}
+                      line={line}
+                      lineNumber={index + 1}
+                      onRemove={removeRecipeDraftLine}
+                      onUpdate={updateRecipeDraftLine}
+                    />
                   ))}
                 </div>
 
@@ -1219,7 +1248,11 @@ function RecipeListPanel({
               <div>
                 <strong>{component.inventoryItemName}</strong>
                 <p>
-                  {component.quantity} {component.unit} - {component.appliesTo}
+                  {component.usageQuantity && component.usageUnit
+                    ? `${formatQuantity(component.usageQuantity)} ${component.usageUnit} used, deducts ${formatQuantity(component.stockQuantity ?? component.quantity)} ${component.stockUnit ?? component.unit}`
+                    : `${formatQuantity(component.quantity)} ${component.unit}`}
+                  {' - '}
+                  {component.appliesTo}
                   {component.choiceGroup ? ` - ${component.choiceGroup}` : ''}
                 </p>
               </div>
@@ -1238,6 +1271,89 @@ function RecipeListPanel({
         )}
       </div>
     </article>
+  )
+}
+
+function RecipeDraftRow({
+  inventoryItems,
+  line,
+  lineNumber,
+  onRemove,
+  onUpdate,
+}: {
+  inventoryItems: InventoryItemRecord[]
+  line: RecipeDraftLine
+  lineNumber: number
+  onRemove: (lineId: string) => void
+  onUpdate: (lineId: string, field: 'inventoryItemId' | 'quantity' | 'usageUnit', value: string) => void
+}) {
+  const inventoryItem = inventoryItems.find((item) => item.id === line.inventoryItemId)
+  const usageUnits = inventoryItem ? getCompatibleUsageUnits(inventoryItem.unit) : []
+  const stockQuantity =
+    inventoryItem && line.quantity
+      ? convertToStockUnit(Number(line.quantity), line.usageUnit || inventoryItem.unit, inventoryItem.unit)
+      : null
+
+  return (
+    <div className="recipe-draft-row">
+      <span className="line-number">{lineNumber}</span>
+      <label>
+        Inventory item
+        <select
+          onChange={(event) => onUpdate(line.id, 'inventoryItemId', event.target.value)}
+          required
+          value={line.inventoryItemId}
+        >
+          <option value="">Choose inventory item</option>
+          {inventoryItems.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name} ({item.unit})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Quantity
+        <input
+          min="0"
+          onChange={(event) => onUpdate(line.id, 'quantity', event.target.value)}
+          placeholder="ex: 80"
+          required
+          step="0.001"
+          type="number"
+          value={line.quantity}
+        />
+      </label>
+      <label>
+        Usage unit
+        <select
+          disabled={!inventoryItem}
+          onChange={(event) => onUpdate(line.id, 'usageUnit', event.target.value)}
+          required
+          value={line.usageUnit}
+        >
+          <option value="">Choose unit</option>
+          {usageUnits.map((unit) => (
+            <option key={unit} value={unit}>
+              {unit}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        aria-label="Remove recipe row"
+        className="icon-button"
+        onClick={() => onRemove(line.id)}
+        type="button"
+      >
+        <Trash2 size={18} />
+      </button>
+      {inventoryItem && stockQuantity !== null ? (
+        <p className="conversion-preview">
+          Will deduct {formatQuantity(stockQuantity)} {inventoryItem.unit} from stock.
+        </p>
+      ) : null}
+    </div>
   )
 }
 

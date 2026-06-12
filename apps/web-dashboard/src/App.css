@@ -369,13 +369,21 @@ h2 {
 
 .recipe-draft-row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 110px 40px;
+  grid-template-columns: 34px minmax(0, 1fr) 110px 120px 40px;
   gap: 10px;
   align-items: end;
   border: 1px solid #eee2d1;
   border-radius: 8px;
   padding: 12px;
   background: #fbf8f1;
+}
+
+.conversion-preview {
+  grid-column: 2 / -1;
+  margin: 0;
+  color: #6f6256;
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .recipe-draft-row label {
@@ -650,5 +658,9 @@ h2 {
 
   .recipe-draft-row {
     grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .conversion-preview {
+    grid-column: 1 / -1;
   }
 }
