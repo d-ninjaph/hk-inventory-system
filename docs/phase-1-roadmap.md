@@ -47,6 +47,8 @@ Current implemented baseline:
 - Firestore-backed inventory item creation/listing.
 - Firestore-backed recipe/BOM rule creation/listing/removal.
 - Starter HK menu, inventory, and recipe seed action.
+- Menu and inventory edit flows.
+- Unit dropdowns and clearer currency fields for setup forms.
 
 ## 5. Testing
 

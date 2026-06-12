@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Cloud,
   Database,
+  Edit3,
   LayoutDashboard,
   Loader2,
   LogIn,
@@ -21,6 +22,7 @@ import {
   ShoppingCart,
   Trash2,
   Utensils,
+  X,
 } from 'lucide-react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import {
@@ -33,6 +35,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
   type Timestamp,
 } from 'firebase/firestore'
@@ -105,6 +108,8 @@ const navItems = [
   { label: 'Settings', icon: Settings },
 ]
 
+const unitOptions = ['pc', 'tub', 'kilo', 'gallon', 'ml', 'liter'] as const
+
 const baselineMenuItems = [
   ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
   ['hk2', 'HK2', 'Regular HK Style Noodles + 2 pcs Sharksfin/Japanese', 'Noodles', 59, 47.2],
@@ -122,29 +127,29 @@ const baselineMenuItems = [
 ] as const
 
 const baselineInventoryItems = [
-  ['noodles', 'Chow mein noodles', 'Ingredient', 'kg', 175, 0, 5],
-  ['rice', 'Rice', 'Ingredient', 'serving', 0, 0, 20],
-  ['regular-tumbler', 'Regular tumbler/container', 'Packaging', 'pcs', 3.5, 0, 40],
-  ['jumbo-tumbler', 'Jumbo tumbler/container', 'Packaging', 'pcs', 5.5, 0, 30],
-  ['regular-lid', 'Regular lid', 'Packaging', 'pcs', 3, 0, 40],
-  ['large-lid', 'Large lid', 'Packaging', 'pcs', 5, 0, 30],
-  ['cutlery', 'Cutlery', 'Packaging', 'pcs', 0, 0, 50],
-  ['paper-bag', 'Paper bag', 'Packaging', 'pcs', 0, 0, 30],
-  ['pork-siomai', 'Pork siomai', 'Ingredient', 'pcs', 4, 0, 60],
-  ['beef-siomai', 'Beef siomai', 'Ingredient', 'pcs', 4, 0, 60],
-  ['chicken-siomai', 'Chicken siomai', 'Ingredient', 'pcs', 4, 0, 60],
-  ['wanton', 'Wanton', 'Ingredient', 'pcs', 4, 0, 40],
-  ['sharksfin', 'Sharksfin', 'Ingredient', 'pcs', 6.25, 0, 40],
-  ['japanese-siomai', 'Japanese siomai', 'Ingredient', 'pcs', 6.25, 0, 40],
-  ['siopao-asado', 'Siopao Asado', 'Ingredient', 'pcs', 30, 0, 12],
-  ['teriyaki-sauce', 'Teriyaki sauce', 'Sauce', 'gal', 290, 0, 0.5],
-  ['peanut-mongolian-sauce', 'Peanut Mongolian sauce', 'Sauce', 'gal', 290, 0, 0.5],
-  ['korean-bbq-sauce', 'Korean BBQ sauce', 'Sauce', 'gal', 230, 0, 0.5],
-  ['sweet-brown-sauce', 'Sweet brown sauce', 'Sauce', 'gal', 290, 0, 0.5],
-  ['chili-oil-mild', 'Chili oil mild', 'Sauce', '500ml bottle', 175, 0, 1],
-  ['chili-oil-extra-spicy', 'Chili oil extra spicy', 'Sauce', '500ml bottle', 265, 0, 1],
-  ['gulaman-powder', 'Gulaman powder', 'Ingredient', 'kg', 395, 0, 1],
-  ['caramel-powder', 'Caramel powder', 'Ingredient', 'pcs', 5, 0, 10],
+  ['noodles', 'Chow mein noodles', 'Ingredient', 'kilo', 175, 0, 5],
+  ['rice', 'Rice', 'Ingredient', 'pc', 0, 0, 20],
+  ['regular-tumbler', 'Regular tumbler/container', 'Packaging', 'pc', 3.5, 0, 40],
+  ['jumbo-tumbler', 'Jumbo tumbler/container', 'Packaging', 'pc', 5.5, 0, 30],
+  ['regular-lid', 'Regular lid', 'Packaging', 'pc', 3, 0, 40],
+  ['large-lid', 'Large lid', 'Packaging', 'pc', 5, 0, 30],
+  ['cutlery', 'Cutlery', 'Packaging', 'pc', 0, 0, 50],
+  ['paper-bag', 'Paper bag', 'Packaging', 'pc', 0, 0, 30],
+  ['pork-siomai', 'Pork siomai', 'Ingredient', 'pc', 4, 0, 60],
+  ['beef-siomai', 'Beef siomai', 'Ingredient', 'pc', 4, 0, 60],
+  ['chicken-siomai', 'Chicken siomai', 'Ingredient', 'pc', 4, 0, 60],
+  ['wanton', 'Wanton', 'Ingredient', 'pc', 4, 0, 40],
+  ['sharksfin', 'Sharksfin', 'Ingredient', 'pc', 6.25, 0, 40],
+  ['japanese-siomai', 'Japanese siomai', 'Ingredient', 'pc', 6.25, 0, 40],
+  ['siopao-asado', 'Siopao Asado', 'Ingredient', 'pc', 30, 0, 12],
+  ['teriyaki-sauce', 'Teriyaki sauce', 'Sauce', 'gallon', 290, 0, 0.5],
+  ['peanut-mongolian-sauce', 'Peanut Mongolian sauce', 'Sauce', 'gallon', 290, 0, 0.5],
+  ['korean-bbq-sauce', 'Korean BBQ sauce', 'Sauce', 'gallon', 230, 0, 0.5],
+  ['sweet-brown-sauce', 'Sweet brown sauce', 'Sauce', 'gallon', 290, 0, 0.5],
+  ['chili-oil-mild', 'Chili oil mild', 'Sauce', 'ml', 175, 0, 500],
+  ['chili-oil-extra-spicy', 'Chili oil extra spicy', 'Sauce', 'ml', 265, 0, 500],
+  ['gulaman-powder', 'Gulaman powder', 'Ingredient', 'kilo', 395, 0, 1],
+  ['caramel-powder', 'Caramel powder', 'Ingredient', 'pc', 5, 0, 10],
 ] as const
 
 const baselineRecipeComponents = [
@@ -309,6 +314,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   const [menuItems, setMenuItems] = useState<MenuItemRecord[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItemRecord[]>([])
   const [recipeComponents, setRecipeComponents] = useState<RecipeComponentRecord[]>([])
+  const [editingMenuId, setEditingMenuId] = useState('')
+  const [editingInventoryId, setEditingInventoryId] = useState('')
   const [menuForm, setMenuForm] = useState({
     code: '',
     name: '',
@@ -320,7 +327,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   const [inventoryForm, setInventoryForm] = useState({
     name: '',
     category: 'Ingredient',
-    unit: 'pcs',
+    unit: 'pc',
     buyingCost: '',
     currentStock: '',
     lowStockThreshold: '',
@@ -370,23 +377,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     }
   }, [branch.id])
 
-  async function handleCreateMenuItem(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setFormMessage('')
-
-    await addDoc(collection(db, 'menuItems'), {
-      branchId: branch.id,
-      code: menuForm.code.trim().toUpperCase(),
-      name: menuForm.name.trim(),
-      category: menuForm.category,
-      sellingPrice: Number(menuForm.sellingPrice),
-      seniorPwdPrice: menuForm.seniorPwdPrice ? Number(menuForm.seniorPwdPrice) : null,
-      status: menuForm.status,
-      setupNotes: 'Recipe setup pending',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    })
-
+  function resetMenuForm() {
+    setEditingMenuId('')
     setMenuForm({
       code: '',
       name: '',
@@ -395,36 +387,107 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       seniorPwdPrice: '',
       status: 'draft',
     })
-    setFormMessage('Menu item saved.')
+  }
+
+  function resetInventoryForm() {
+    setEditingInventoryId('')
+    setInventoryForm({
+      name: '',
+      category: 'Ingredient',
+      unit: 'pc',
+      buyingCost: '',
+      currentStock: '',
+      lowStockThreshold: '',
+    })
+  }
+
+  function startEditingMenuItem(item: MenuItemRecord) {
+    setActiveSection('Menu')
+    setEditingMenuId(item.id)
+    setFormMessage('')
+    setMenuForm({
+      code: item.code,
+      name: item.name,
+      category: item.category,
+      sellingPrice: String(item.sellingPrice),
+      seniorPwdPrice: item.seniorPwdPrice ? String(item.seniorPwdPrice) : '',
+      status: item.status,
+    })
+  }
+
+  function startEditingInventoryItem(item: InventoryItemRecord) {
+    setActiveSection('Inventory')
+    setEditingInventoryId(item.id)
+    setFormMessage('')
+    setInventoryForm({
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      buyingCost: String(item.buyingCost),
+      currentStock: String(item.currentStock),
+      lowStockThreshold: String(item.lowStockThreshold),
+    })
+  }
+
+  async function handleCreateMenuItem(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    const payload = {
+      code: menuForm.code.trim().toUpperCase(),
+      name: menuForm.name.trim(),
+      category: menuForm.category,
+      sellingPrice: Number(menuForm.sellingPrice),
+      seniorPwdPrice: menuForm.seniorPwdPrice ? Number(menuForm.seniorPwdPrice) : null,
+      status: menuForm.status,
+      updatedAt: serverTimestamp(),
+    }
+
+    if (editingMenuId) {
+      await updateDoc(doc(db, 'menuItems', editingMenuId), payload)
+      setFormMessage('Menu item updated.')
+    } else {
+      await addDoc(collection(db, 'menuItems'), {
+        ...payload,
+        branchId: branch.id,
+        setupNotes: 'Recipe setup pending',
+        createdAt: serverTimestamp(),
+      })
+      setFormMessage('Menu item saved.')
+    }
+
+    resetMenuForm()
   }
 
   async function handleCreateInventoryItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormMessage('')
 
-    await addDoc(collection(db, 'inventoryItems'), {
-      branchId: branch.id,
+    const payload = {
       name: inventoryForm.name.trim(),
       category: inventoryForm.category,
-      unit: inventoryForm.unit.trim(),
+      unit: inventoryForm.unit,
       buyingCost: Number(inventoryForm.buyingCost),
       currentStock: Number(inventoryForm.currentStock),
       lowStockThreshold: Number(inventoryForm.lowStockThreshold),
       supplierPriceType: 'discounted',
       active: true,
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    })
+    }
 
-    setInventoryForm({
-      name: '',
-      category: 'Ingredient',
-      unit: 'pcs',
-      buyingCost: '',
-      currentStock: '',
-      lowStockThreshold: '',
-    })
-    setFormMessage('Inventory item saved.')
+    if (editingInventoryId) {
+      await updateDoc(doc(db, 'inventoryItems', editingInventoryId), payload)
+      setFormMessage('Inventory item updated.')
+    } else {
+      await addDoc(collection(db, 'inventoryItems'), {
+        ...payload,
+        branchId: branch.id,
+        createdAt: serverTimestamp(),
+      })
+      setFormMessage('Inventory item saved.')
+    }
+
+    resetInventoryForm()
   }
 
   async function handleCreateRecipeComponent(event: React.FormEvent<HTMLFormElement>) {
@@ -622,8 +685,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
 
         {activeSection === 'Overview' ? (
           <section className="content-grid">
-            <MenuListPanel menuItems={menuItems.slice(0, 5)} onAdd={() => setActiveSection('Menu')} />
-            <InventoryAlertsPanel inventoryItems={inventoryItems} />
+            <MenuListPanel
+              menuItems={menuItems.slice(0, 5)}
+              onAdd={() => setActiveSection('Menu')}
+              onEdit={startEditingMenuItem}
+            />
+            <InventoryAlertsPanel inventoryItems={inventoryItems} onEdit={startEditingInventoryItem} />
             <SetupFlowPanel />
           </section>
         ) : null}
@@ -634,7 +701,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               <div className="panel-header">
                 <div>
                   <p className="eyebrow">Setup</p>
-                  <h2>Add menu item</h2>
+                  <h2>{editingMenuId ? 'Edit menu item' : 'Add menu item'}</h2>
                 </div>
                 <PackagePlus size={22} />
               </div>
@@ -643,7 +710,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   Code
                   <input
                     onChange={(event) => setMenuForm((form) => ({ ...form, code: event.target.value }))}
-                    placeholder="HK10"
+                    placeholder="ex: HK10"
                     required
                     value={menuForm.code}
                   />
@@ -652,7 +719,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   Name
                   <input
                     onChange={(event) => setMenuForm((form) => ({ ...form, name: event.target.value }))}
-                    placeholder="Regular Noodles + 2 pcs Siomai"
+                    placeholder="ex: Pork Siomai / Sharksfin"
                     required
                     value={menuForm.name}
                   />
@@ -672,24 +739,30 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <label>
                   Selling price
-                  <input
-                    min="0"
-                    onChange={(event) => setMenuForm((form) => ({ ...form, sellingPrice: event.target.value }))}
-                    placeholder="55"
-                    required
-                    type="number"
-                    value={menuForm.sellingPrice}
-                  />
+                  <span className="currency-field">
+                    <span>PHP</span>
+                    <input
+                      min="0"
+                      onChange={(event) => setMenuForm((form) => ({ ...form, sellingPrice: event.target.value }))}
+                      placeholder="ex: 55"
+                      required
+                      type="number"
+                      value={menuForm.sellingPrice}
+                    />
+                  </span>
                 </label>
                 <label>
                   Senior/PWD price
-                  <input
-                    min="0"
-                    onChange={(event) => setMenuForm((form) => ({ ...form, seniorPwdPrice: event.target.value }))}
-                    placeholder="44"
-                    type="number"
-                    value={menuForm.seniorPwdPrice}
-                  />
+                  <span className="currency-field">
+                    <span>PHP</span>
+                    <input
+                      min="0"
+                      onChange={(event) => setMenuForm((form) => ({ ...form, seniorPwdPrice: event.target.value }))}
+                      placeholder="ex: 44"
+                      type="number"
+                      value={menuForm.seniorPwdPrice}
+                    />
+                  </span>
                 </label>
                 <label>
                   Status
@@ -704,12 +777,18 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <button className="primary-button form-submit" type="submit">
                   <Plus size={18} />
-                  Save menu item
+                  {editingMenuId ? 'Update menu item' : 'Save menu item'}
                 </button>
+                {editingMenuId ? (
+                  <button className="secondary-button form-submit" onClick={resetMenuForm} type="button">
+                    <X size={18} />
+                    Cancel edit
+                  </button>
+                ) : null}
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
-            <MenuListPanel menuItems={menuItems} onAdd={() => undefined} />
+            <MenuListPanel menuItems={menuItems} onAdd={() => undefined} onEdit={startEditingMenuItem} />
           </section>
         ) : null}
 
@@ -719,7 +798,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               <div className="panel-header">
                 <div>
                   <p className="eyebrow">Setup</p>
-                  <h2>Add inventory item</h2>
+                  <h2>{editingInventoryId ? 'Edit inventory item' : 'Add inventory item'}</h2>
                 </div>
                 <Boxes size={22} />
               </div>
@@ -728,7 +807,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   Item name
                   <input
                     onChange={(event) => setInventoryForm((form) => ({ ...form, name: event.target.value }))}
-                    placeholder="Pork siomai"
+                    placeholder="ex: Pork Siomai / Sharksfin"
                     required
                     value={inventoryForm.name}
                   />
@@ -748,31 +827,39 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <label>
                   Unit
-                  <input
+                  <select
                     onChange={(event) => setInventoryForm((form) => ({ ...form, unit: event.target.value }))}
-                    placeholder="pcs, kg, gal"
                     required
                     value={inventoryForm.unit}
-                  />
+                  >
+                    {unitOptions.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   Buying cost
-                  <input
-                    min="0"
-                    onChange={(event) => setInventoryForm((form) => ({ ...form, buyingCost: event.target.value }))}
-                    placeholder="4"
-                    required
-                    step="0.01"
-                    type="number"
-                    value={inventoryForm.buyingCost}
-                  />
+                  <span className="currency-field">
+                    <span>PHP</span>
+                    <input
+                      min="0"
+                      onChange={(event) => setInventoryForm((form) => ({ ...form, buyingCost: event.target.value }))}
+                      placeholder="ex: 4"
+                      required
+                      step="0.01"
+                      type="number"
+                      value={inventoryForm.buyingCost}
+                    />
+                  </span>
                 </label>
                 <label>
                   Current stock
                   <input
                     min="0"
                     onChange={(event) => setInventoryForm((form) => ({ ...form, currentStock: event.target.value }))}
-                    placeholder="60"
+                    placeholder="ex: 60"
                     required
                     step="0.01"
                     type="number"
@@ -786,7 +873,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                     onChange={(event) =>
                       setInventoryForm((form) => ({ ...form, lowStockThreshold: event.target.value }))
                     }
-                    placeholder="30"
+                    placeholder="ex: 30"
                     required
                     step="0.01"
                     type="number"
@@ -795,12 +882,18 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <button className="primary-button form-submit" type="submit">
                   <Plus size={18} />
-                  Save inventory item
+                  {editingInventoryId ? 'Update inventory item' : 'Save inventory item'}
                 </button>
+                {editingInventoryId ? (
+                  <button className="secondary-button form-submit" onClick={resetInventoryForm} type="button">
+                    <X size={18} />
+                    Cancel edit
+                  </button>
+                ) : null}
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
-            <InventoryAlertsPanel inventoryItems={inventoryItems} />
+            <InventoryAlertsPanel inventoryItems={inventoryItems} onEdit={startEditingInventoryItem} />
           </section>
         ) : null}
 
@@ -936,7 +1029,15 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   )
 }
 
-function MenuListPanel({ menuItems, onAdd }: { menuItems: MenuItemRecord[]; onAdd: () => void }) {
+function MenuListPanel({
+  menuItems,
+  onAdd,
+  onEdit,
+}: {
+  menuItems: MenuItemRecord[]
+  onAdd: () => void
+  onEdit: (item: MenuItemRecord) => void
+}) {
   return (
     <article className="panel menu-panel">
       <div className="panel-header">
@@ -953,7 +1054,7 @@ function MenuListPanel({ menuItems, onAdd }: { menuItems: MenuItemRecord[]; onAd
       <div className="table-list">
         {menuItems.length ? (
           menuItems.map((item) => (
-            <div className="table-row" key={item.id}>
+            <div className="table-row editable-row" key={item.id}>
               <div className="item-code">{item.code}</div>
               <div>
                 <strong>{item.name}</strong>
@@ -963,6 +1064,9 @@ function MenuListPanel({ menuItems, onAdd }: { menuItems: MenuItemRecord[]; onAd
               </div>
               <div className="price">{money(item.sellingPrice)}</div>
               <span className={item.status === 'ready' ? 'badge ready' : 'badge draft'}>{item.status}</span>
+              <button aria-label={`Edit ${item.name}`} className="icon-button neutral" onClick={() => onEdit(item)} type="button">
+                <Edit3 size={18} />
+              </button>
             </div>
           ))
         ) : (
@@ -973,7 +1077,13 @@ function MenuListPanel({ menuItems, onAdd }: { menuItems: MenuItemRecord[]; onAd
   )
 }
 
-function InventoryAlertsPanel({ inventoryItems }: { inventoryItems: InventoryItemRecord[] }) {
+function InventoryAlertsPanel({
+  inventoryItems,
+  onEdit,
+}: {
+  inventoryItems: InventoryItemRecord[]
+  onEdit: (item: InventoryItemRecord) => void
+}) {
   return (
     <article className="panel side-panel">
       <div className="panel-header compact">
@@ -989,7 +1099,7 @@ function InventoryAlertsPanel({ inventoryItems }: { inventoryItems: InventoryIte
           inventoryItems.map((item) => {
             const status = getStockStatus(item)
             return (
-              <div className="alert-row" key={item.id}>
+              <div className="alert-row editable-alert-row" key={item.id}>
                 <div>
                   <strong>{item.name}</strong>
                   <p>
@@ -997,6 +1107,9 @@ function InventoryAlertsPanel({ inventoryItems }: { inventoryItems: InventoryIte
                   </p>
                 </div>
                 <span className={`stock-status ${status.toLowerCase()}`}>{status}</span>
+                <button aria-label={`Edit ${item.name}`} className="icon-button neutral" onClick={() => onEdit(item)} type="button">
+                  <Edit3 size={18} />
+                </button>
               </div>
             )
           })

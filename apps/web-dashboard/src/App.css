@@ -55,6 +55,7 @@
   padding: 0 12px;
   background: #fffdf8;
   color: #17120f;
+  font-weight: 700;
 }
 
 .login-card input:focus {
@@ -315,6 +316,20 @@ h2 {
   opacity: 0.72;
 }
 
+.secondary-button {
+  min-height: 42px;
+  border: 1px solid #d9cdbc;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: #fffdf8;
+  color: #4d4238;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -337,10 +352,52 @@ h2 {
   padding: 0 10px;
   background: #fffdf8;
   color: #17120f;
+  font-weight: 700;
 }
 
 .form-grid input:focus,
 .form-grid select:focus {
+  outline: 3px solid rgba(255, 217, 26, 0.45);
+  border-color: #d71920;
+}
+
+.form-grid input::placeholder,
+.login-card input::placeholder {
+  color: #918579;
+  font-weight: 400;
+}
+
+.currency-field {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  border: 1px solid #d9cdbc;
+  border-radius: 8px;
+  background: #fffdf8;
+  overflow: hidden;
+}
+
+.currency-field span {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #fbf2df;
+  color: #7a5b16;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.currency-field input {
+  border: 0;
+  border-radius: 0;
+}
+
+.currency-field input:focus {
+  outline: 0;
+}
+
+.currency-field:focus-within {
   outline: 3px solid rgba(255, 217, 26, 0.45);
   border-color: #d71920;
 }
@@ -392,8 +449,16 @@ h2 {
   grid-template-columns: 56px minmax(0, 1fr) 90px 78px;
 }
 
+.table-row.editable-row {
+  grid-template-columns: 56px minmax(0, 1fr) 90px 78px 40px;
+}
+
 .alert-row {
   grid-template-columns: minmax(0, 1fr) 78px;
+}
+
+.alert-row.editable-alert-row {
+  grid-template-columns: minmax(0, 1fr) 78px 40px;
 }
 
 .recipe-row {
@@ -425,6 +490,11 @@ h2 {
   background: #ffe2e0;
   color: #b01820;
   cursor: pointer;
+}
+
+.icon-button.neutral {
+  background: #fff3c7;
+  color: #7a5b16;
 }
 
 .seed-button {
