@@ -862,21 +862,39 @@ h2 {
   color: #665c52;
 }
 
-.flow-steps {
-  display: flex;
-  flex-wrap: wrap;
+.readiness-list {
+  display: grid;
   gap: 10px;
 }
 
-.flow-steps span {
-  min-height: 36px;
-  display: inline-flex;
+.readiness-row {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: 12px;
+  border: 1px solid #eee2d1;
   border-radius: 8px;
-  padding: 0 12px;
-  background: #ffd91a;
-  color: #17120f;
-  font-weight: 900;
+  padding: 10px 12px;
+  background: #fbf8f1;
+}
+
+.readiness-row strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.readiness-row p {
+  margin-bottom: 0;
+  color: #71665e;
+  font-size: 0.88rem;
+}
+
+.readiness-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .tutorial-backdrop {

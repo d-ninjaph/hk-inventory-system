@@ -1172,7 +1172,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 showControls={false}
               />
               <InventoryAlertsPanel inventoryItems={inventoryItems} onEdit={startEditingInventoryItem} showControls={false} />
-              <SetupFlowPanel />
+              <SetupReadinessPanel
+                inventoryItems={inventoryItems}
+                menuItems={menuItems}
+                onSelectSection={setActiveSection}
+                recipeComponents={recipeComponents}
+              />
             </section>
           </>
         ) : null}
@@ -2750,22 +2755,88 @@ function RecipeDraftRow({
   )
 }
 
-function SetupFlowPanel() {
+function SetupReadinessPanel({
+  inventoryItems,
+  menuItems,
+  onSelectSection,
+  recipeComponents,
+}: {
+  inventoryItems: InventoryItemRecord[]
+  menuItems: MenuItemRecord[]
+  onSelectSection: (section: ActiveSection) => void
+  recipeComponents: RecipeComponentRecord[]
+}) {
+  const readyMenuItems = menuItems.filter((item) => item.status === 'ready')
+  const draftMenuItems = menuItems.filter((item) => item.status === 'draft')
+  const recipeMenuIds = new Set(recipeComponents.map((component) => component.menuItemId))
+  const readyMenuItemsWithRecipes = readyMenuItems.filter((item) => recipeMenuIds.has(item.id)).length
+  const stockAlerts = inventoryItems.filter((item) => {
+    const status = getStockStatus(item)
+    return status === 'Reorder' || status === 'Critical'
+  }).length
+  const packagingItems = inventoryItems.filter((item) => item.category.toLowerCase() === 'packaging').length
+  const recipeStatus = readyMenuItems.length === 0 ? 'draft' : readyMenuItemsWithRecipes === readyMenuItems.length ? 'ready' : 'review'
+  const stockStatus = stockAlerts === 0 ? 'ready' : 'review'
+
   return (
     <article className="panel workflow-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Setup checklist</p>
-          <h2>Ready-to-sell workflow</h2>
+          <p className="eyebrow">Setup readiness</p>
+          <h2>Ready to sell</h2>
         </div>
         <ChefHat size={22} />
       </div>
-      <div className="flow-steps">
-        <span>Menu item</span>
-        <span>Choices</span>
-        <span>Ingredients used</span>
-        <span>Packaging</span>
-        <span>Ready to sell</span>
+      <div className="readiness-list">
+        <div className="readiness-row">
+          <div>
+            <strong>Menu items</strong>
+            <p>
+              {readyMenuItems.length} ready - {draftMenuItems.length} draft
+            </p>
+          </div>
+          <span className={`badge ${readyMenuItems.length ? 'ready' : 'draft'}`}>
+            {readyMenuItems.length ? 'Ready' : 'Draft'}
+          </span>
+        </div>
+        <div className="readiness-row">
+          <div>
+            <strong>Recipe coverage</strong>
+            <p>
+              {readyMenuItemsWithRecipes} of {readyMenuItems.length} ready items linked
+            </p>
+          </div>
+          <span className={`badge ${recipeStatus === 'ready' ? 'ready' : 'draft'}`}>
+            {recipeStatus === 'ready' ? 'Ready' : 'Review'}
+          </span>
+        </div>
+        <div className="readiness-row">
+          <div>
+            <strong>Stock alerts</strong>
+            <p>{stockAlerts ? `${stockAlerts} items need attention` : 'No reorder alerts'}</p>
+          </div>
+          <span className={`stock-status ${stockStatus === 'ready' ? 'ok' : 'reorder'}`}>
+            {stockStatus === 'ready' ? 'OK' : 'Review'}
+          </span>
+        </div>
+        <div className="readiness-row">
+          <div>
+            <strong>Packaging</strong>
+            <p>{packagingItems} packaging items tracked</p>
+          </div>
+          <span className={`badge ${packagingItems ? 'ready' : 'draft'}`}>{packagingItems ? 'Ready' : 'Review'}</span>
+        </div>
+      </div>
+      <div className="readiness-actions">
+        <button className="secondary-button compact-button" onClick={() => onSelectSection('Menu')} type="button">
+          Menu
+        </button>
+        <button className="secondary-button compact-button" onClick={() => onSelectSection('Inventory')} type="button">
+          Inventory
+        </button>
+        <button className="secondary-button compact-button" onClick={() => onSelectSection('Recipes')} type="button">
+          Recipes
+        </button>
       </div>
     </article>
   )
