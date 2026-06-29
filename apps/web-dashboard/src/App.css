@@ -539,6 +539,66 @@ h2 {
   gap: 10px;
 }
 
+.list-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, auto) minmax(150px, auto) minmax(140px, auto) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.search-control,
+.select-control {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d9cdbc;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fffdf8;
+  color: #6f6256;
+  font-weight: 800;
+}
+
+.search-control input,
+.select-control select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #17120f;
+  font: inherit;
+  outline: 0;
+}
+
+.select-control select {
+  cursor: pointer;
+}
+
+.page-size-control {
+  color: #806f5c;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.results-count {
+  color: #6f6256;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  color: #6f6256;
+  font-weight: 800;
+}
+
 .table-row,
 .alert-row,
 .recipe-row {
@@ -908,6 +968,15 @@ h2 {
   .report-row,
   .report-row.movement-row {
     grid-template-columns: 1fr;
+  }
+
+  .list-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination-controls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .report-date-filter {

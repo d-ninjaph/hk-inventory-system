@@ -26,8 +26,10 @@ import {
   Package,
   PackagePlus,
   Plus,
+  Search,
   Settings,
   ShoppingCart,
+  SlidersHorizontal,
   Soup,
   Trash2,
   Utensils,
@@ -228,6 +230,8 @@ const movementOptions: { value: StockMovementKind; label: string; helper: string
   { value: 'adjustment', label: 'Count adjustment', helper: 'Sets stock to the counted quantity.' },
 ]
 
+const pageSizeOptions = [10, 25, 50] as const
+
 const baselineMenuItems = [
   ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
   ['hk2', 'HK2', 'Regular HK Style Noodles + 2 pcs Sharksfin/Japanese', 'Noodles', 59, 47.2],
@@ -347,6 +351,27 @@ function formatTimestamp(timestamp?: Timestamp) {
 
 function formatDateOnly(value?: string) {
   return value || 'No date'
+}
+
+function getPageCount(totalItems: number, pageSize: number) {
+  return Math.max(1, Math.ceil(totalItems / pageSize))
+}
+
+function getPagedItems<T>(items: T[], currentPage: number, pageSize: number) {
+  const startIndex = (currentPage - 1) * pageSize
+
+  return items.slice(startIndex, startIndex + pageSize)
+}
+
+function getPaginationLabel(totalItems: number, currentPage: number, pageSize: number) {
+  if (!totalItems) {
+    return 'No items found'
+  }
+
+  const start = (currentPage - 1) * pageSize + 1
+  const end = Math.min(totalItems, currentPage * pageSize)
+
+  return `Showing ${start}-${end} of ${totalItems}`
 }
 
 function getCompatibleUsageUnits(stockUnit: string) {
@@ -1115,39 +1140,41 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           </div>
         </header>
 
-        <section className="status-grid" aria-label="Daily status">
-          <article className="metric-card">
-            <ShoppingCart size={22} />
-            <p>Orders Today</p>
-            <strong>{todayOrders.length}</strong>
-          </article>
-          <article className="metric-card">
-            <CircleDollarSign size={22} />
-            <p>Synced Sales</p>
-            <strong>{money(todaySales)}</strong>
-          </article>
-          <article className="metric-card warning">
-            <AlertTriangle size={22} />
-            <p>Reorder Alerts</p>
-            <strong>{reorderCount}</strong>
-          </article>
-          <article className="metric-card">
-            <ClipboardList size={22} />
-            <p>Recipe Rules</p>
-            <strong>{recipeComponents.length}</strong>
-          </article>
-        </section>
-
         {activeSection === 'Overview' ? (
-          <section className="content-grid">
-            <MenuListPanel
-              menuItems={menuItems.slice(0, 5)}
-              onAdd={() => setActiveSection('Menu')}
-              onEdit={startEditingMenuItem}
-            />
-            <InventoryAlertsPanel inventoryItems={inventoryItems} onEdit={startEditingInventoryItem} />
-            <SetupFlowPanel />
-          </section>
+          <>
+            <section className="status-grid" aria-label="Daily status">
+              <article className="metric-card">
+                <ShoppingCart size={22} />
+                <p>Orders Today</p>
+                <strong>{todayOrders.length}</strong>
+              </article>
+              <article className="metric-card">
+                <CircleDollarSign size={22} />
+                <p>Synced Sales</p>
+                <strong>{money(todaySales)}</strong>
+              </article>
+              <article className="metric-card warning">
+                <AlertTriangle size={22} />
+                <p>Reorder Alerts</p>
+                <strong>{reorderCount}</strong>
+              </article>
+              <article className="metric-card">
+                <ClipboardList size={22} />
+                <p>Recipe Rules</p>
+                <strong>{recipeComponents.length}</strong>
+              </article>
+            </section>
+            <section className="content-grid">
+              <MenuListPanel
+                menuItems={menuItems.slice(0, 5)}
+                onAdd={() => setActiveSection('Menu')}
+                onEdit={startEditingMenuItem}
+                showControls={false}
+              />
+              <InventoryAlertsPanel inventoryItems={inventoryItems} onEdit={startEditingInventoryItem} showControls={false} />
+              <SetupFlowPanel />
+            </section>
+          </>
         ) : null}
 
         {activeSection === 'Menu' ? (
@@ -1582,6 +1609,121 @@ function TutorialModal({
   )
 }
 
+function ListControls({
+  filterLabel,
+  filterOptions,
+  filterValue,
+  onFilterChange,
+  onPageSizeChange,
+  onSearchChange,
+  pageSize,
+  resultLabel,
+  secondaryFilterLabel,
+  secondaryFilterOptions,
+  secondaryFilterValue,
+  onSecondaryFilterChange,
+  searchPlaceholder,
+  searchValue,
+}: {
+  filterLabel: string
+  filterOptions: { label: string; value: string }[]
+  filterValue: string
+  onFilterChange: (value: string) => void
+  onPageSizeChange: (value: number) => void
+  onSearchChange: (value: string) => void
+  pageSize: number
+  resultLabel: string
+  secondaryFilterLabel?: string
+  secondaryFilterOptions?: { label: string; value: string }[]
+  secondaryFilterValue?: string
+  onSecondaryFilterChange?: (value: string) => void
+  searchPlaceholder: string
+  searchValue: string
+}) {
+  return (
+    <div className="list-controls">
+      <label className="search-control">
+        <Search size={18} />
+        <input
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          type="search"
+          value={searchValue}
+        />
+      </label>
+      <label className="select-control">
+        <SlidersHorizontal size={18} />
+        <select onChange={(event) => onFilterChange(event.target.value)} value={filterValue}>
+          {filterOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {secondaryFilterOptions && secondaryFilterValue !== undefined && onSecondaryFilterChange ? (
+        <label className="select-control">
+          {secondaryFilterLabel || 'Filter'}
+          <select onChange={(event) => onSecondaryFilterChange(event.target.value)} value={secondaryFilterValue}>
+            {secondaryFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <label className="select-control page-size-control">
+        {filterLabel}
+        <select onChange={(event) => onPageSizeChange(Number(event.target.value))} value={pageSize}>
+          {pageSizeOptions.map((option) => (
+            <option key={option} value={option}>
+              {option} per page
+            </option>
+          ))}
+        </select>
+      </label>
+      <span className="results-count">{resultLabel}</span>
+    </div>
+  )
+}
+
+function PaginationControls({
+  currentPage,
+  onPageChange,
+  pageCount,
+}: {
+  currentPage: number
+  onPageChange: (page: number) => void
+  pageCount: number
+}) {
+  return (
+    <div className="pagination-controls">
+      <button
+        className="secondary-button compact-button"
+        disabled={currentPage <= 1}
+        onClick={() => onPageChange(currentPage - 1)}
+        type="button"
+      >
+        <ChevronLeft size={18} />
+        Previous
+      </button>
+      <span>
+        Page {currentPage} of {pageCount}
+      </span>
+      <button
+        className="secondary-button compact-button"
+        disabled={currentPage >= pageCount}
+        onClick={() => onPageChange(currentPage + 1)}
+        type="button"
+      >
+        Next
+        <ChevronRight size={18} />
+      </button>
+    </div>
+  )
+}
+
 function StockMovementPanel({
   form,
   inventoryItems,
@@ -1964,11 +2106,45 @@ function MenuListPanel({
   menuItems,
   onAdd,
   onEdit,
+  showControls = true,
 }: {
   menuItems: MenuItemRecord[]
   onAdd: () => void
   onEdit: (item: MenuItemRecord) => void
+  showControls?: boolean
 }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const categoryOptions = useMemo(
+    () => [
+      { label: 'All categories', value: 'all' },
+      ...Array.from(new Set(menuItems.map((item) => item.category))).map((category) => ({
+        label: category,
+        value: category,
+      })),
+    ],
+    [menuItems],
+  )
+  const filteredMenuItems = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
+    return menuItems.filter((item) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        `${item.code} ${item.name} ${item.category}`.toLowerCase().includes(normalizedSearch)
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter
+
+      return matchesSearch && matchesCategory && matchesStatus
+    })
+  }, [categoryFilter, menuItems, searchQuery, statusFilter])
+  const pageCount = getPageCount(filteredMenuItems.length, pageSize)
+  const safeCurrentPage = Math.min(currentPage, pageCount)
+  const pagedMenuItems = showControls ? getPagedItems(filteredMenuItems, safeCurrentPage, pageSize) : menuItems
+
   return (
     <article className="panel menu-panel">
       <div className="panel-header">
@@ -1982,9 +2158,45 @@ function MenuListPanel({
         </button>
       </div>
 
+      {showControls ? (
+        <ListControls
+          filterLabel="Rows"
+          filterOptions={categoryOptions}
+          filterValue={categoryFilter}
+          onFilterChange={(value) => {
+            setCategoryFilter(value)
+            setCurrentPage(1)
+          }}
+          onPageSizeChange={(value) => {
+            setPageSize(value)
+            setCurrentPage(1)
+          }}
+          onSearchChange={(value) => {
+            setSearchQuery(value)
+            setCurrentPage(1)
+          }}
+          onSecondaryFilterChange={(value) => {
+            setStatusFilter(value)
+            setCurrentPage(1)
+          }}
+          pageSize={pageSize}
+          resultLabel={getPaginationLabel(filteredMenuItems.length, safeCurrentPage, pageSize)}
+          searchPlaceholder="Search code, item, or category"
+          searchValue={searchQuery}
+          secondaryFilterLabel="Status"
+          secondaryFilterOptions={[
+            { label: 'All statuses', value: 'all' },
+            { label: 'Draft', value: 'draft' },
+            { label: 'Ready', value: 'ready' },
+            { label: 'Inactive', value: 'inactive' },
+          ]}
+          secondaryFilterValue={statusFilter}
+        />
+      ) : null}
+
       <div className="table-list">
-        {menuItems.length ? (
-          menuItems.map((item) => (
+        {pagedMenuItems.length ? (
+          pagedMenuItems.map((item) => (
             <div className="table-row editable-row" key={item.id}>
               <ItemBadge category={item.category} code={item.code} name={item.name} />
               <div>
@@ -1999,9 +2211,14 @@ function MenuListPanel({
             </div>
           ))
         ) : (
-          <p className="empty-state">No menu items yet. Add the current HK menu here first.</p>
+          <p className="empty-state">
+            {menuItems.length ? 'No menu items match the current search or filters.' : 'No menu items yet. Add the current HK menu here first.'}
+          </p>
         )}
       </div>
+      {showControls && filteredMenuItems.length > pageSize ? (
+        <PaginationControls currentPage={safeCurrentPage} onPageChange={setCurrentPage} pageCount={pageCount} />
+      ) : null}
     </article>
   )
 }
@@ -2009,10 +2226,47 @@ function MenuListPanel({
 function InventoryAlertsPanel({
   inventoryItems,
   onEdit,
+  showControls = true,
 }: {
   inventoryItems: InventoryItemRecord[]
   onEdit: (item: InventoryItemRecord) => void
+  showControls?: boolean
 }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [stockFilter, setStockFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const categoryOptions = useMemo(
+    () => [
+      { label: 'All categories', value: 'all' },
+      ...Array.from(new Set(inventoryItems.map((item) => item.category))).map((category) => ({
+        label: category,
+        value: category,
+      })),
+    ],
+    [inventoryItems],
+  )
+  const filteredInventoryItems = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
+    return inventoryItems.filter((item) => {
+      const status = getStockStatus(item).toLowerCase()
+      const matchesSearch =
+        !normalizedSearch ||
+        `${item.name} ${item.category} ${item.unit}`.toLowerCase().includes(normalizedSearch)
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
+      const matchesStock = stockFilter === 'all' || status === stockFilter
+
+      return matchesSearch && matchesCategory && matchesStock
+    })
+  }, [categoryFilter, inventoryItems, searchQuery, stockFilter])
+  const pageCount = getPageCount(filteredInventoryItems.length, pageSize)
+  const safeCurrentPage = Math.min(currentPage, pageCount)
+  const pagedInventoryItems = showControls
+    ? getPagedItems(filteredInventoryItems, safeCurrentPage, pageSize)
+    : inventoryItems
+
   return (
     <article className="panel side-panel">
       <div className="panel-header compact">
@@ -2023,9 +2277,46 @@ function InventoryAlertsPanel({
         <ArrowDownUp size={20} />
       </div>
 
+      {showControls ? (
+        <ListControls
+          filterLabel="Rows"
+          filterOptions={categoryOptions}
+          filterValue={categoryFilter}
+          onFilterChange={(value) => {
+            setCategoryFilter(value)
+            setCurrentPage(1)
+          }}
+          onPageSizeChange={(value) => {
+            setPageSize(value)
+            setCurrentPage(1)
+          }}
+          onSearchChange={(value) => {
+            setSearchQuery(value)
+            setCurrentPage(1)
+          }}
+          onSecondaryFilterChange={(value) => {
+            setStockFilter(value)
+            setCurrentPage(1)
+          }}
+          pageSize={pageSize}
+          resultLabel={getPaginationLabel(filteredInventoryItems.length, safeCurrentPage, pageSize)}
+          searchPlaceholder="Search inventory item"
+          searchValue={searchQuery}
+          secondaryFilterLabel="Stock"
+          secondaryFilterOptions={[
+            { label: 'All stock', value: 'all' },
+            { label: 'OK', value: 'ok' },
+            { label: 'Reorder', value: 'reorder' },
+            { label: 'Critical', value: 'critical' },
+            { label: 'Inactive', value: 'inactive' },
+          ]}
+          secondaryFilterValue={stockFilter}
+        />
+      ) : null}
+
       <div className="alert-list">
-        {inventoryItems.length ? (
-          inventoryItems.map((item) => {
+        {pagedInventoryItems.length ? (
+          pagedInventoryItems.map((item) => {
             const status = getStockStatus(item)
             return (
               <div className="alert-row editable-alert-row" key={item.id}>
@@ -2043,9 +2334,16 @@ function InventoryAlertsPanel({
             )
           })
         ) : (
-          <p className="empty-state">No inventory items yet. Add ingredients, packaging, sauces, and supplies.</p>
+          <p className="empty-state">
+            {inventoryItems.length
+              ? 'No inventory items match the current search or filters.'
+              : 'No inventory items yet. Add ingredients, packaging, sauces, and supplies.'}
+          </p>
         )}
       </div>
+      {showControls && filteredInventoryItems.length > pageSize ? (
+        <PaginationControls currentPage={safeCurrentPage} onPageChange={setCurrentPage} pageCount={pageCount} />
+      ) : null}
     </article>
   )
 }
@@ -2057,6 +2355,40 @@ function RecipeListPanel({
   components: RecipeComponentRecord[]
   onDelete: (componentId: string) => void
 }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [menuCodeFilter, setMenuCodeFilter] = useState('all')
+  const [appliesToFilter, setAppliesToFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const menuCodeOptions = useMemo(
+    () => [
+      { label: 'All menu items', value: 'all' },
+      ...Array.from(new Set(components.map((component) => component.menuItemCode))).map((menuItemCode) => ({
+        label: menuItemCode,
+        value: menuItemCode,
+      })),
+    ],
+    [components],
+  )
+  const filteredComponents = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
+    return components.filter((component) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        `${component.menuItemCode} ${component.inventoryItemName} ${component.choiceGroup ?? ''}`
+          .toLowerCase()
+          .includes(normalizedSearch)
+      const matchesMenuCode = menuCodeFilter === 'all' || component.menuItemCode === menuCodeFilter
+      const matchesAppliesTo = appliesToFilter === 'all' || component.appliesTo === appliesToFilter
+
+      return matchesSearch && matchesMenuCode && matchesAppliesTo
+    })
+  }, [appliesToFilter, components, menuCodeFilter, searchQuery])
+  const pageCount = getPageCount(filteredComponents.length, pageSize)
+  const safeCurrentPage = Math.min(currentPage, pageCount)
+  const pagedComponents = getPagedItems(filteredComponents, safeCurrentPage, pageSize)
+
   return (
     <article className="panel menu-panel">
       <div className="panel-header">
@@ -2067,9 +2399,45 @@ function RecipeListPanel({
         <BookOpen size={20} />
       </div>
 
+      <ListControls
+        filterLabel="Rows"
+        filterOptions={menuCodeOptions}
+        filterValue={menuCodeFilter}
+        onFilterChange={(value) => {
+          setMenuCodeFilter(value)
+          setCurrentPage(1)
+        }}
+        onPageSizeChange={(value) => {
+          setPageSize(value)
+          setCurrentPage(1)
+        }}
+        onSearchChange={(value) => {
+          setSearchQuery(value)
+          setCurrentPage(1)
+        }}
+        onSecondaryFilterChange={(value) => {
+          setAppliesToFilter(value)
+          setCurrentPage(1)
+        }}
+        pageSize={pageSize}
+        resultLabel={getPaginationLabel(filteredComponents.length, safeCurrentPage, pageSize)}
+        searchPlaceholder="Search menu code, ingredient, or choice"
+        searchValue={searchQuery}
+        secondaryFilterLabel="Rule"
+        secondaryFilterOptions={[
+          { label: 'All rules', value: 'all' },
+          { label: 'Base item', value: 'base' },
+          { label: 'Dine-in only', value: 'dine_in' },
+          { label: 'Take-out only', value: 'take_out' },
+          { label: 'Required choice', value: 'choice' },
+          { label: 'Add-on', value: 'addon' },
+        ]}
+        secondaryFilterValue={appliesToFilter}
+      />
+
       <div className="recipe-list">
-        {components.length ? (
-          components.map((component) => (
+        {pagedComponents.length ? (
+          pagedComponents.map((component) => (
             <div className="recipe-row" key={component.id}>
               <ItemBadge code={component.menuItemCode} name={component.inventoryItemName} />
               <div>
@@ -2094,9 +2462,16 @@ function RecipeListPanel({
             </div>
           ))
         ) : (
-          <p className="empty-state">No recipe rules yet. Add base ingredients, choices, add-ons, and packaging.</p>
+          <p className="empty-state">
+            {components.length
+              ? 'No recipe rules match the current search or filters.'
+              : 'No recipe rules yet. Add base ingredients, choices, add-ons, and packaging.'}
+          </p>
         )}
       </div>
+      {filteredComponents.length > pageSize ? (
+        <PaginationControls currentPage={safeCurrentPage} onPageChange={setCurrentPage} pageCount={pageCount} />
+      ) : null}
     </article>
   )
 }
