@@ -588,6 +588,7 @@ h2 {
 .page-size-control {
   min-height: 34px;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
   border: 1px solid #d9cdbc;
@@ -610,17 +611,16 @@ h2 {
 }
 
 .results-count {
+  display: block;
   color: #6f6256;
   font-size: 0.86rem;
   font-weight: 800;
-  white-space: nowrap;
+  line-height: 1.35;
 }
 
 .pagination-controls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
   margin-top: 14px;
   border-top: 1px solid #eee2d1;
   padding-top: 12px;
@@ -628,8 +628,35 @@ h2 {
   font-weight: 800;
 }
 
-.pagination-controls > span {
-  margin-right: auto;
+.pagination-summary {
+  min-width: 0;
+}
+
+.pagination-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pagination-actions .compact-button {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.page-indicator {
+  min-height: 34px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #eee2d1;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fbf8f1;
+  color: #6f6256;
+  font-size: 0.86rem;
+  font-weight: 900;
 }
 
 .table-row,
@@ -1048,13 +1075,11 @@ h2 {
   }
 
   .pagination-controls {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    justify-items: stretch;
   }
 
-  .pagination-controls > span {
-    width: 100%;
-    margin-right: 0;
+  .pagination-actions {
+    justify-content: flex-start;
   }
 
   .report-date-filter {

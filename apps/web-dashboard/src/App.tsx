@@ -1866,38 +1866,42 @@ function PaginationControls({
 }) {
   return (
     <div className="pagination-controls">
-      <span className="results-count">{resultLabel}</span>
-      <label className="page-size-control">
-        Rows
-        <select onChange={(event) => onPageSizeChange(Number(event.target.value))} value={pageSize}>
-          {pageSizeOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button
-        className="secondary-button compact-button"
-        disabled={currentPage <= 1}
-        onClick={() => onPageChange(currentPage - 1)}
-        type="button"
-      >
-        <ChevronLeft size={18} />
-        Previous
-      </button>
-      <span>
-        Page {currentPage} of {pageCount}
-      </span>
-      <button
-        className="secondary-button compact-button"
-        disabled={currentPage >= pageCount}
-        onClick={() => onPageChange(currentPage + 1)}
-        type="button"
-      >
-        Next
-        <ChevronRight size={18} />
-      </button>
+      <div className="pagination-summary">
+        <span className="results-count">{resultLabel}</span>
+      </div>
+      <div className="pagination-actions">
+        <label className="page-size-control">
+          Rows
+          <select onChange={(event) => onPageSizeChange(Number(event.target.value))} value={pageSize}>
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="secondary-button compact-button"
+          disabled={currentPage <= 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          type="button"
+        >
+          <ChevronLeft size={18} />
+          Previous
+        </button>
+        <span className="page-indicator">
+          Page {currentPage} of {pageCount}
+        </span>
+        <button
+          className="secondary-button compact-button"
+          disabled={currentPage >= pageCount}
+          onClick={() => onPageChange(currentPage + 1)}
+          type="button"
+        >
+          Next
+          <ChevronRight size={18} />
+        </button>
+      </div>
     </div>
   )
 }
