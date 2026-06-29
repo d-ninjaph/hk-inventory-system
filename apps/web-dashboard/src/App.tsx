@@ -100,6 +100,51 @@ type RecipeComponentRecord = {
   choiceGroup?: string
 }
 
+type OrderRecord = {
+  id: string
+  branchId: string
+  businessDate?: string
+  orderType?: 'dine_in' | 'take_out'
+  grossAmount?: number
+  discountType?: string
+  discountAmount?: number
+  netAmount?: number
+  status?: string
+  createdAt?: Timestamp
+}
+
+type StockMovementRecord = {
+  id: string
+  branchId: string
+  inventoryItemId: string
+  inventoryItemName?: string
+  movementType: string
+  quantity: number
+  unit?: string
+  sourceType?: string
+  businessDate?: string
+  createdAt?: Timestamp
+}
+
+type DaySessionRecord = {
+  id: string
+  branchId: string
+  businessDate: string
+  openedAt?: Timestamp
+  closedAt?: Timestamp
+  status: string
+  lastSyncedAt?: Timestamp
+}
+
+type SyncEventRecord = {
+  id: string
+  branchId: string
+  deviceId: string
+  status: string
+  pendingRecords?: number
+  createdAt?: Timestamp
+}
+
 type RecipeDraftLine = {
   id: string
   inventoryItemId: string
@@ -219,6 +264,29 @@ function money(value: number) {
   }).format(value)
 }
 
+function getBusinessDate(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+function formatTimestamp(timestamp?: Timestamp) {
+  if (!timestamp) {
+    return 'Not recorded'
+  }
+
+  return timestamp.toDate().toLocaleString('en-PH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
+function formatDateOnly(value?: string) {
+  return value || 'No date'
+}
+
 function getCompatibleUsageUnits(stockUnit: string) {
   if (stockUnit === 'kilo') {
     return ['gram', 'kilo']
@@ -273,6 +341,32 @@ function getStockStatus(item: InventoryItemRecord) {
   }
 
   return 'OK'
+}
+
+function isOpenOrder(order: OrderRecord) {
+  return !['cancelled', 'void', 'voided'].includes((order.status ?? '').toLowerCase())
+}
+
+function getMovementLabel(movementType: string) {
+  return movementType
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function getOperationalStatusClass(status?: string) {
+  const normalizedStatus = (status ?? '').toLowerCase()
+
+  if (['synced', 'complete', 'completed', 'closed', 'ok', 'online'].includes(normalizedStatus)) {
+    return 'ok'
+  }
+
+  if (['failed', 'error', 'voided', 'void', 'cancelled'].includes(normalizedStatus)) {
+    return 'critical'
+  }
+
+  return 'reorder'
 }
 
 function LoginScreen() {
@@ -357,6 +451,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   const [menuItems, setMenuItems] = useState<MenuItemRecord[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItemRecord[]>([])
   const [recipeComponents, setRecipeComponents] = useState<RecipeComponentRecord[]>([])
+  const [orders, setOrders] = useState<OrderRecord[]>([])
+  const [stockMovements, setStockMovements] = useState<StockMovementRecord[]>([])
+  const [daySessions, setDaySessions] = useState<DaySessionRecord[]>([])
+  const [syncEvents, setSyncEvents] = useState<SyncEventRecord[]>([])
   const [editingMenuId, setEditingMenuId] = useState('')
   const [editingInventoryId, setEditingInventoryId] = useState('')
   const [menuForm, setMenuForm] = useState({
@@ -385,13 +483,20 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   ])
   const [formMessage, setFormMessage] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
+  const todayBusinessDate = getBusinessDate()
   const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
   const reorderCount = inventoryItems.filter((item) => getStockStatus(item) === 'Reorder' || getStockStatus(item) === 'Critical').length
+  const todayOrders = orders.filter((order) => order.businessDate === todayBusinessDate && isOpenOrder(order))
+  const todaySales = todayOrders.reduce((total, order) => total + (order.netAmount ?? order.grossAmount ?? 0), 0)
 
   useEffect(() => {
     const menuQuery = query(collection(db, 'menuItems'), where('branchId', '==', branch.id))
     const inventoryQuery = query(collection(db, 'inventoryItems'), where('branchId', '==', branch.id))
     const recipeQuery = query(collection(db, 'recipeComponents'), where('branchId', '==', branch.id))
+    const ordersQuery = query(collection(db, 'orders'), where('branchId', '==', branch.id))
+    const stockMovementsQuery = query(collection(db, 'stockMovements'), where('branchId', '==', branch.id))
+    const daySessionsQuery = query(collection(db, 'daySessions'), where('branchId', '==', branch.id))
+    const syncEventsQuery = query(collection(db, 'syncEvents'), where('branchId', '==', branch.id))
 
     const unsubscribeMenu = onSnapshot(menuQuery, (snapshot) => {
       const nextItems = snapshot.docs
@@ -414,10 +519,42 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       setRecipeComponents(nextItems)
     })
 
+    const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as OrderRecord)
+        .sort((first, second) => (second.createdAt?.toMillis() ?? 0) - (first.createdAt?.toMillis() ?? 0))
+      setOrders(nextItems)
+    })
+
+    const unsubscribeStockMovements = onSnapshot(stockMovementsQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as StockMovementRecord)
+        .sort((first, second) => (second.createdAt?.toMillis() ?? 0) - (first.createdAt?.toMillis() ?? 0))
+      setStockMovements(nextItems)
+    })
+
+    const unsubscribeDaySessions = onSnapshot(daySessionsQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as DaySessionRecord)
+        .sort((first, second) => second.businessDate.localeCompare(first.businessDate))
+      setDaySessions(nextItems)
+    })
+
+    const unsubscribeSyncEvents = onSnapshot(syncEventsQuery, (snapshot) => {
+      const nextItems = snapshot.docs
+        .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as SyncEventRecord)
+        .sort((first, second) => (second.createdAt?.toMillis() ?? 0) - (first.createdAt?.toMillis() ?? 0))
+      setSyncEvents(nextItems)
+    })
+
     return () => {
       unsubscribeMenu()
       unsubscribeInventory()
       unsubscribeRecipes()
+      unsubscribeOrders()
+      unsubscribeStockMovements()
+      unsubscribeDaySessions()
+      unsubscribeSyncEvents()
     }
   }, [branch.id])
 
@@ -760,12 +897,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           <article className="metric-card">
             <ShoppingCart size={22} />
             <p>Orders Today</p>
-            <strong>0</strong>
+            <strong>{todayOrders.length}</strong>
           </article>
           <article className="metric-card">
             <CircleDollarSign size={22} />
             <p>Synced Sales</p>
-            <strong>{money(0)}</strong>
+            <strong>{money(todaySales)}</strong>
           </article>
           <article className="metric-card warning">
             <AlertTriangle size={22} />
@@ -1084,6 +1221,19 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           </section>
         ) : null}
 
+        {activeSection === 'Reports' ? (
+          <ReportsPanel
+            daySessions={daySessions}
+            orders={orders}
+            stockMovements={stockMovements}
+            todayBusinessDate={todayBusinessDate}
+          />
+        ) : null}
+
+        {activeSection === 'Sync' ? (
+          <SyncPanel daySessions={daySessions} syncEvents={syncEvents} />
+        ) : null}
+
         {activeSection === 'Settings' ? (
           <section className="screen-grid">
             <article className="panel">
@@ -1119,6 +1269,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
         activeSection !== 'Menu' &&
         activeSection !== 'Inventory' &&
         activeSection !== 'Recipes' &&
+        activeSection !== 'Reports' &&
+        activeSection !== 'Sync' &&
         activeSection !== 'Settings' ? (
           <article className="panel placeholder-panel">
             <p className="eyebrow">Coming next</p>
@@ -1128,6 +1280,216 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
         ) : null}
       </section>
     </main>
+  )
+}
+
+function ReportsPanel({
+  daySessions,
+  orders,
+  stockMovements,
+  todayBusinessDate,
+}: {
+  daySessions: DaySessionRecord[]
+  orders: OrderRecord[]
+  stockMovements: StockMovementRecord[]
+  todayBusinessDate: string
+}) {
+  const openOrders = orders.filter(isOpenOrder)
+  const todayOrders = openOrders.filter((order) => order.businessDate === todayBusinessDate)
+  const todaySales = todayOrders.reduce((total, order) => total + (order.netAmount ?? order.grossAmount ?? 0), 0)
+  const totalDiscounts = todayOrders.reduce((total, order) => total + (order.discountAmount ?? 0), 0)
+  const recentMovements = stockMovements.slice(0, 8)
+
+  return (
+    <section className="screen-grid reports-grid">
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Today</p>
+            <h2>Sales summary</h2>
+          </div>
+          <BarChart3 size={22} />
+        </div>
+        <div className="summary-grid">
+          <div>
+            <p>Orders</p>
+            <strong>{todayOrders.length}</strong>
+          </div>
+          <div>
+            <p>Net sales</p>
+            <strong>{money(todaySales)}</strong>
+          </div>
+          <div>
+            <p>Discounts</p>
+            <strong>{money(totalDiscounts)}</strong>
+          </div>
+        </div>
+        <div className="table-list report-list">
+          {todayOrders.length ? (
+            todayOrders.slice(0, 6).map((order) => (
+              <div className="report-row" key={order.id}>
+                <div>
+                  <strong>{order.orderType === 'take_out' ? 'Take-out order' : 'Dine-in order'}</strong>
+                  <p>
+                    {formatTimestamp(order.createdAt)} - {order.discountType || 'No discount'}
+                  </p>
+                </div>
+                <span className={`stock-status ${getOperationalStatusClass(order.status)}`}>
+                  {order.status || 'synced'}
+                </span>
+                <strong>{money(order.netAmount ?? order.grossAmount ?? 0)}</strong>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">No synced orders for {todayBusinessDate} yet.</p>
+          )}
+        </div>
+      </article>
+
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Inventory</p>
+            <h2>Recent stock movements</h2>
+          </div>
+          <ArrowDownUp size={22} />
+        </div>
+        <div className="table-list report-list">
+          {recentMovements.length ? (
+            recentMovements.map((movement) => (
+              <div className="report-row movement-row" key={movement.id}>
+                <div>
+                  <strong>{movement.inventoryItemName || movement.inventoryItemId}</strong>
+                  <p>
+                    {getMovementLabel(movement.movementType)} - {movement.sourceType || 'Manual'} -{' '}
+                    {formatDateOnly(movement.businessDate)}
+                  </p>
+                </div>
+                <strong>
+                  {formatQuantity(movement.quantity)} {movement.unit || ''}
+                </strong>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">No stock movements have synced yet.</p>
+          )}
+        </div>
+      </article>
+
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">End of day</p>
+            <h2>Day sessions</h2>
+          </div>
+          <ClipboardList size={22} />
+        </div>
+        <div className="table-list report-list">
+          {daySessions.length ? (
+            daySessions.slice(0, 6).map((session) => (
+              <div className="report-row" key={session.id}>
+                <div>
+                  <strong>{session.businessDate}</strong>
+                  <p>
+                    Opened {formatTimestamp(session.openedAt)} - Closed {formatTimestamp(session.closedAt)}
+                  </p>
+                </div>
+                <span className={`stock-status ${getOperationalStatusClass(session.status)}`}>
+                  {session.status}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">No day sessions have synced yet.</p>
+          )}
+        </div>
+      </article>
+    </section>
+  )
+}
+
+function SyncPanel({
+  daySessions,
+  syncEvents,
+}: {
+  daySessions: DaySessionRecord[]
+  syncEvents: SyncEventRecord[]
+}) {
+  const latestSync = syncEvents[0]
+  const pendingRecords = syncEvents.reduce((total, event) => total + (event.pendingRecords ?? 0), 0)
+
+  return (
+    <section className="screen-grid sync-grid">
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Tablet sync</p>
+            <h2>Latest status</h2>
+          </div>
+          <Cloud size={22} />
+        </div>
+        <div className="summary-grid">
+          <div>
+            <p>Last event</p>
+            <strong>{latestSync ? formatTimestamp(latestSync.createdAt) : 'None'}</strong>
+          </div>
+          <div>
+            <p>Pending records</p>
+            <strong>{pendingRecords}</strong>
+          </div>
+          <div>
+            <p>Devices seen</p>
+            <strong>{new Set(syncEvents.map((event) => event.deviceId)).size}</strong>
+          </div>
+        </div>
+        <div className="table-list report-list">
+          {syncEvents.length ? (
+            syncEvents.slice(0, 10).map((event) => (
+              <div className="report-row" key={event.id}>
+                <div>
+                  <strong>{event.deviceId}</strong>
+                  <p>
+                    {formatTimestamp(event.createdAt)} - {event.pendingRecords ?? 0} pending
+                  </p>
+                </div>
+                <span className={`stock-status ${getOperationalStatusClass(event.status)}`}>
+                  {event.status}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">No tablet sync events have been received yet.</p>
+          )}
+        </div>
+      </article>
+
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Business days</p>
+            <h2>Session sync health</h2>
+          </div>
+          <ClipboardList size={22} />
+        </div>
+        <div className="table-list report-list">
+          {daySessions.length ? (
+            daySessions.slice(0, 8).map((session) => (
+              <div className="report-row" key={session.id}>
+                <div>
+                  <strong>{session.businessDate}</strong>
+                  <p>Last synced {formatTimestamp(session.lastSyncedAt)}</p>
+                </div>
+                <span className={`stock-status ${getOperationalStatusClass(session.status)}`}>
+                  {session.status}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">No day sessions are available for sync review yet.</p>
+          )}
+        </div>
+      </article>
+    </section>
   )
 }
 
@@ -1390,6 +1752,13 @@ function App() {
     return onAuthStateChanged(auth, (user) => {
       setAuthUser(user)
       setIsAuthLoading(false)
+
+      if (!user) {
+        setProfile(null)
+        setBranch(null)
+        setSetupError('')
+        setIsDataLoading(false)
+      }
     })
   }, [])
 
@@ -1435,12 +1804,7 @@ function App() {
 
     if (authUser) {
       void loadDashboardData(authUser)
-      return
     }
-
-    setProfile(null)
-    setBranch(null)
-    setSetupError('')
   }, [authUser])
 
   if (isAuthLoading) {
