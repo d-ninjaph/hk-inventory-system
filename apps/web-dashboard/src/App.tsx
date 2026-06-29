@@ -1531,7 +1531,6 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 <p className="eyebrow">Edit menu item</p>
                 <h2 id="menu-edit-title">{menuForm.name || 'Menu item'}</h2>
               </div>
-              <PackagePlus size={22} />
             </div>
             <form className="form-grid" onSubmit={handleCreateMenuItem}>
               <label>
@@ -1624,7 +1623,6 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 <p className="eyebrow">Edit inventory item</p>
                 <h2 id="inventory-edit-title">{inventoryForm.name || 'Inventory item'}</h2>
               </div>
-              <Boxes size={22} />
             </div>
             <form className="form-grid" onSubmit={handleCreateInventoryItem}>
               <label>
