@@ -1183,7 +1183,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               <div className="panel-header">
                 <div>
                   <p className="eyebrow">Setup</p>
-                  <h2>{editingMenuId ? 'Edit menu item' : 'Add menu item'}</h2>
+                  <h2>Add menu item</h2>
                 </div>
                 <PackagePlus size={22} />
               </div>
@@ -1259,14 +1259,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <button className="primary-button form-submit" type="submit">
                   <Plus size={18} />
-                  {editingMenuId ? 'Update menu item' : 'Save menu item'}
+                  Save menu item
                 </button>
-                {editingMenuId ? (
-                  <button className="secondary-button form-submit" onClick={resetMenuForm} type="button">
-                    <X size={18} />
-                    Cancel edit
-                  </button>
-                ) : null}
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
@@ -1280,7 +1274,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               <div className="panel-header">
                 <div>
                   <p className="eyebrow">Setup</p>
-                  <h2>{editingInventoryId ? 'Edit inventory item' : 'Add inventory item'}</h2>
+                  <h2>Add inventory item</h2>
                 </div>
                 <Boxes size={22} />
               </div>
@@ -1364,14 +1358,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <button className="primary-button form-submit" type="submit">
                   <Plus size={18} />
-                  {editingInventoryId ? 'Update inventory item' : 'Save inventory item'}
+                  Save inventory item
                 </button>
-                {editingInventoryId ? (
-                  <button className="secondary-button form-submit" onClick={resetInventoryForm} type="button">
-                    <X size={18} />
-                    Cancel edit
-                  </button>
-                ) : null}
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
@@ -1531,6 +1519,200 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           onSelectSection={(section) => setActiveSection(section)}
           onStepChange={setTutorialStepIndex}
         />
+      ) : null}
+      {editingMenuId ? (
+        <div className="edit-modal-backdrop" role="presentation">
+          <section aria-labelledby="menu-edit-title" aria-modal="true" className="edit-modal" role="dialog">
+            <button aria-label="Close menu edit" className="icon-button tutorial-close" onClick={resetMenuForm} type="button">
+              <X size={18} />
+            </button>
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Edit menu item</p>
+                <h2 id="menu-edit-title">{menuForm.name || 'Menu item'}</h2>
+              </div>
+              <PackagePlus size={22} />
+            </div>
+            <form className="form-grid" onSubmit={handleCreateMenuItem}>
+              <label>
+                Code
+                <input
+                  onChange={(event) => setMenuForm((form) => ({ ...form, code: event.target.value }))}
+                  required
+                  value={menuForm.code}
+                />
+              </label>
+              <label>
+                Name
+                <input
+                  onChange={(event) => setMenuForm((form) => ({ ...form, name: event.target.value }))}
+                  required
+                  value={menuForm.name}
+                />
+              </label>
+              <label>
+                Category
+                <select
+                  onChange={(event) => setMenuForm((form) => ({ ...form, category: event.target.value }))}
+                  value={menuForm.category}
+                >
+                  <option>Noodles</option>
+                  <option>Rice Meals</option>
+                  <option>Dimsum</option>
+                  <option>Drinks</option>
+                  <option>Add-ons</option>
+                </select>
+              </label>
+              <label>
+                Selling price
+                <span className="currency-field">
+                  <span>PHP</span>
+                  <input
+                    min="0"
+                    onChange={(event) => setMenuForm((form) => ({ ...form, sellingPrice: event.target.value }))}
+                    required
+                    type="number"
+                    value={menuForm.sellingPrice}
+                  />
+                </span>
+              </label>
+              <label>
+                Senior/PWD price
+                <span className="currency-field">
+                  <span>PHP</span>
+                  <input
+                    min="0"
+                    onChange={(event) => setMenuForm((form) => ({ ...form, seniorPwdPrice: event.target.value }))}
+                    type="number"
+                    value={menuForm.seniorPwdPrice}
+                  />
+                </span>
+              </label>
+              <label>
+                Status
+                <select
+                  onChange={(event) => setMenuForm((form) => ({ ...form, status: event.target.value }))}
+                  value={menuForm.status}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="ready">Ready</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <div className="modal-actions">
+                <button className="secondary-button" onClick={resetMenuForm} type="button">
+                  <X size={18} />
+                  Cancel
+                </button>
+                <button className="primary-button" type="submit">
+                  <Plus size={18} />
+                  Save changes
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+      {editingInventoryId ? (
+        <div className="edit-modal-backdrop" role="presentation">
+          <section aria-labelledby="inventory-edit-title" aria-modal="true" className="edit-modal" role="dialog">
+            <button aria-label="Close inventory edit" className="icon-button tutorial-close" onClick={resetInventoryForm} type="button">
+              <X size={18} />
+            </button>
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Edit inventory item</p>
+                <h2 id="inventory-edit-title">{inventoryForm.name || 'Inventory item'}</h2>
+              </div>
+              <Boxes size={22} />
+            </div>
+            <form className="form-grid" onSubmit={handleCreateInventoryItem}>
+              <label>
+                Item name
+                <input
+                  onChange={(event) => setInventoryForm((form) => ({ ...form, name: event.target.value }))}
+                  required
+                  value={inventoryForm.name}
+                />
+              </label>
+              <label>
+                Category
+                <select
+                  onChange={(event) => setInventoryForm((form) => ({ ...form, category: event.target.value }))}
+                  value={inventoryForm.category}
+                >
+                  <option>Ingredient</option>
+                  <option>Packaging</option>
+                  <option>Sauce</option>
+                  <option>Drink</option>
+                  <option>Supply</option>
+                </select>
+              </label>
+              <label>
+                Unit
+                <select
+                  onChange={(event) => setInventoryForm((form) => ({ ...form, unit: event.target.value }))}
+                  required
+                  value={inventoryForm.unit}
+                >
+                  {unitOptions.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Buying cost
+                <span className="currency-field">
+                  <span>PHP</span>
+                  <input
+                    min="0"
+                    onChange={(event) => setInventoryForm((form) => ({ ...form, buyingCost: event.target.value }))}
+                    required
+                    step="0.01"
+                    type="number"
+                    value={inventoryForm.buyingCost}
+                  />
+                </span>
+              </label>
+              <label>
+                Current stock
+                <input
+                  min="0"
+                  onChange={(event) => setInventoryForm((form) => ({ ...form, currentStock: event.target.value }))}
+                  required
+                  step="0.01"
+                  type="number"
+                  value={inventoryForm.currentStock}
+                />
+              </label>
+              <label>
+                Reorder reminder
+                <input
+                  min="0"
+                  onChange={(event) =>
+                    setInventoryForm((form) => ({ ...form, lowStockThreshold: event.target.value }))
+                  }
+                  required
+                  step="0.01"
+                  type="number"
+                  value={inventoryForm.lowStockThreshold}
+                />
+              </label>
+              <div className="modal-actions">
+                <button className="secondary-button" onClick={resetInventoryForm} type="button">
+                  <X size={18} />
+                  Cancel
+                </button>
+                <button className="primary-button" type="submit">
+                  <Plus size={18} />
+                  Save changes
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       ) : null}
     </main>
   )
