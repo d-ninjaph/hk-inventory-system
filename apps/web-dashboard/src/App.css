@@ -391,9 +391,9 @@ h2 {
 
 .recipe-draft-row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 110px 120px 40px;
+  grid-template-columns: 34px minmax(0, 1fr) 40px;
   gap: 10px;
-  align-items: end;
+  align-items: start;
   border: 1px solid #eee2d1;
   border-radius: 8px;
   padding: 12px;
@@ -401,7 +401,7 @@ h2 {
 }
 
 .conversion-preview {
-  grid-column: 2 / -1;
+  grid-column: 2 / 3;
   margin: 0;
   color: #6f6256;
   font-size: 0.86rem;
@@ -413,6 +413,15 @@ h2 {
   gap: 7px;
   color: #4d4238;
   font-weight: 800;
+}
+
+.recipe-draft-row label {
+  grid-column: 2 / 3;
+}
+
+.recipe-draft-row .icon-button {
+  grid-column: 3 / 4;
+  grid-row: 1 / 2;
 }
 
 .line-number {
@@ -599,7 +608,7 @@ h2 {
   margin-top: 18px;
 }
 
-.item-code {
+.item-badge {
   width: 46px;
   height: 46px;
   display: grid;
@@ -609,6 +618,16 @@ h2 {
   color: #d71920;
   border: 2px solid #17120f;
   font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.code-badge {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.icon-badge svg {
+  stroke-width: 2.4;
 }
 
 .price {
@@ -896,10 +915,10 @@ h2 {
   }
 
   .recipe-draft-row {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr) 40px;
   }
 
   .conversion-preview {
-    grid-column: 1 / -1;
+    grid-column: 2 / 3;
   }
 }

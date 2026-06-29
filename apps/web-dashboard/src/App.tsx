@@ -6,25 +6,33 @@ import {
   BarChart3,
   BookOpen,
   Boxes,
+  Beef,
   ChevronLeft,
   ChevronRight,
   ChefHat,
   CircleDollarSign,
+  CircleHelp,
   ClipboardList,
   Cloud,
+  CupSoda,
   Database,
   Edit3,
+  GlassWater,
   HelpCircle,
   LayoutDashboard,
   Loader2,
   LogIn,
   LogOut,
+  Package,
   PackagePlus,
   Plus,
   Settings,
   ShoppingCart,
+  Soup,
   Trash2,
   Utensils,
+  UtensilsCrossed,
+  Wheat,
   X,
 } from 'lucide-react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
@@ -409,6 +417,57 @@ function getMovementLabel(movementType: string) {
     .join(' ')
 }
 
+function shouldShowCodeBadge(code: string) {
+  return /^[A-Z]{1,3}\d{1,2}$/.test(code) && code.length <= 4
+}
+
+function getItemIconType(name: string, category = '', code = '') {
+  const searchText = `${name} ${category} ${code}`.toLowerCase()
+
+  if (searchText.includes('gulaman') || searchText.includes('drink')) {
+    return 'drink'
+  }
+
+  if (searchText.includes('noodle')) {
+    return 'noodle'
+  }
+
+  if (searchText.includes('rice') || searchText.includes('powder')) {
+    return 'grain'
+  }
+
+  if (
+    searchText.includes('siomai') ||
+    searchText.includes('sharksfin') ||
+    searchText.includes('wanton') ||
+    searchText.includes('siopao') ||
+    searchText.includes('dimsum')
+  ) {
+    return 'dimsum'
+  }
+
+  if (
+    searchText.includes('packaging') ||
+    searchText.includes('container') ||
+    searchText.includes('tumbler') ||
+    searchText.includes('lid') ||
+    searchText.includes('cutlery') ||
+    searchText.includes('bag')
+  ) {
+    return 'package'
+  }
+
+  if (searchText.includes('sauce') || searchText.includes('oil')) {
+    return 'sauce'
+  }
+
+  if (searchText.includes('add')) {
+    return 'addon'
+  }
+
+  return 'default'
+}
+
 function getOperationalStatusClass(status?: string) {
   const normalizedStatus = (status ?? '').toLowerCase()
 
@@ -421,6 +480,30 @@ function getOperationalStatusClass(status?: string) {
   }
 
   return 'reorder'
+}
+
+function getMenuItemSubtitle(item: MenuItemRecord) {
+  if (item.status === 'ready') {
+    return `${item.category} - Ready for selling`
+  }
+
+  if (item.status === 'inactive') {
+    return `${item.category} - Not visible to staff`
+  }
+
+  return `${item.category} - Recipe review needed`
+}
+
+function getRecipeAppliesToLabel(appliesTo: RecipeComponentRecord['appliesTo']) {
+  const labels = {
+    addon: 'Add-on',
+    base: 'Base item',
+    choice: 'Required choice',
+    dine_in: 'Dine-in only',
+    take_out: 'Take-out only',
+  }
+
+  return labels[appliesTo]
 }
 
 function LoginScreen() {
@@ -720,7 +803,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       await addDoc(collection(db, 'menuItems'), {
         ...payload,
         branchId: branch.id,
-        setupNotes: 'Recipe setup pending',
+        setupNotes: 'Recipe review needed',
         createdAt: serverTimestamp(),
       })
       setFormMessage('Menu item saved.')
@@ -910,7 +993,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               sellingPrice,
               seniorPwdPrice,
               status: 'draft',
-              setupNotes: 'Starter recipe setup - review before selling',
+              setupNotes: 'Recipe review needed',
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             },
@@ -1413,20 +1496,6 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
             </article>
           </section>
         ) : null}
-
-        {activeSection !== 'Overview' &&
-        activeSection !== 'Menu' &&
-        activeSection !== 'Inventory' &&
-        activeSection !== 'Recipes' &&
-        activeSection !== 'Reports' &&
-        activeSection !== 'Sync' &&
-        activeSection !== 'Settings' ? (
-          <article className="panel placeholder-panel">
-            <p className="eyebrow">Coming next</p>
-            <h2>{activeSection}</h2>
-            <p className="subtle">This module will be wired after menu and inventory setup are stable.</p>
-          </article>
-        ) : null}
       </section>
       {isTutorialOpen ? (
         <TutorialModal
@@ -1843,6 +1912,54 @@ function SyncPanel({
   )
 }
 
+function ItemBadge({ category, code, name }: { category?: string; code: string; name: string }) {
+  if (shouldShowCodeBadge(code)) {
+    return (
+      <div className="item-badge code-badge" title={code}>
+        {code}
+      </div>
+    )
+  }
+
+  return (
+    <div aria-label={`${name} icon`} className="item-badge icon-badge" title={`${code} - ${name}`}>
+      <ItemBadgeIcon type={getItemIconType(name, category, code)} />
+    </div>
+  )
+}
+
+function ItemBadgeIcon({ type }: { type: string }) {
+  if (type === 'drink') {
+    return <CupSoda size={24} />
+  }
+
+  if (type === 'noodle') {
+    return <Soup size={24} />
+  }
+
+  if (type === 'grain') {
+    return <Wheat size={24} />
+  }
+
+  if (type === 'dimsum') {
+    return <Beef size={24} />
+  }
+
+  if (type === 'package') {
+    return <Package size={24} />
+  }
+
+  if (type === 'sauce') {
+    return <GlassWater size={24} />
+  }
+
+  if (type === 'addon') {
+    return <UtensilsCrossed size={24} />
+  }
+
+  return <CircleHelp size={24} />
+}
+
 function MenuListPanel({
   menuItems,
   onAdd,
@@ -1869,12 +1986,10 @@ function MenuListPanel({
         {menuItems.length ? (
           menuItems.map((item) => (
             <div className="table-row editable-row" key={item.id}>
-              <div className="item-code">{item.code}</div>
+              <ItemBadge category={item.category} code={item.code} name={item.name} />
               <div>
                 <strong>{item.name}</strong>
-                <p>
-                  {item.category} - {item.setupNotes || 'Recipe setup pending'}
-                </p>
+                <p>{getMenuItemSubtitle(item)}</p>
               </div>
               <div className="price">{money(item.sellingPrice)}</div>
               <span className={item.status === 'ready' ? 'badge ready' : 'badge draft'}>{item.status}</span>
@@ -1956,7 +2071,7 @@ function RecipeListPanel({
         {components.length ? (
           components.map((component) => (
             <div className="recipe-row" key={component.id}>
-              <div className="item-code">{component.menuItemCode}</div>
+              <ItemBadge code={component.menuItemCode} name={component.inventoryItemName} />
               <div>
                 <strong>{component.inventoryItemName}</strong>
                 <p>
@@ -1964,7 +2079,7 @@ function RecipeListPanel({
                     ? `${formatQuantity(component.usageQuantity)} ${component.usageUnit} used, deducts ${formatQuantity(component.stockQuantity ?? component.quantity)} ${component.stockUnit ?? component.unit}`
                     : `${formatQuantity(component.quantity)} ${component.unit}`}
                   {' - '}
-                  {component.appliesTo}
+                  {getRecipeAppliesToLabel(component.appliesTo)}
                   {component.choiceGroup ? ` - ${component.choiceGroup}` : ''}
                 </p>
               </div>
@@ -2074,8 +2189,8 @@ function SetupFlowPanel() {
     <article className="panel workflow-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Next build target</p>
-          <h2>Dashboard setup flow</h2>
+          <p className="eyebrow">Setup checklist</p>
+          <h2>Ready-to-sell workflow</h2>
         </div>
         <ChefHat size={22} />
       </div>
