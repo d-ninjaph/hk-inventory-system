@@ -6,12 +6,15 @@ import {
   BarChart3,
   BookOpen,
   Boxes,
+  ChevronLeft,
+  ChevronRight,
   ChefHat,
   CircleDollarSign,
   ClipboardList,
   Cloud,
   Database,
   Edit3,
+  HelpCircle,
   LayoutDashboard,
   Loader2,
   LogIn,
@@ -122,6 +125,7 @@ type StockMovementRecord = {
   quantity: number
   unit?: string
   sourceType?: string
+  notes?: string
   businessDate?: string
   createdAt?: Timestamp
 }
@@ -152,6 +156,8 @@ type RecipeDraftLine = {
   usageUnit: string
 }
 
+type StockMovementKind = 'stock_in' | 'wastage' | 'spoilage' | 'mistake' | 'adjustment'
+
 type ActiveSection = 'Overview' | 'Menu' | 'Inventory' | 'Recipes' | 'Reports' | 'Sync' | 'Settings'
 
 const navItems = [
@@ -165,6 +171,54 @@ const navItems = [
 ]
 
 const unitOptions = ['pc', 'tub', 'kilo', 'gram', 'gallon', 'ml', 'liter'] as const
+
+const tutorialStorageKey = 'hkInventoryDashboardTutorialSeen'
+
+const tutorialSteps = [
+  {
+    section: 'Overview',
+    title: 'Start with the daily snapshot',
+    body: 'Use Overview to check orders, sales, low-stock alerts, recipe setup progress, and the fastest links into setup work.',
+  },
+  {
+    section: 'Menu',
+    title: 'Set up what the branch sells',
+    body: 'Menu stores item codes, prices, Senior/PWD prices, and selling status. Keep items in draft until recipes are ready.',
+  },
+  {
+    section: 'Inventory',
+    title: 'Track ingredients and supplies',
+    body: 'Inventory stores stock levels, reorder reminders, and manual stock movements like stock-in, wastage, spoilage, and count adjustments.',
+  },
+  {
+    section: 'Recipes',
+    title: 'Tell the system what each sale deducts',
+    body: 'Recipes connect menu items to ingredients, choices, add-ons, and packaging so reports can match real stock usage.',
+  },
+  {
+    section: 'Reports',
+    title: 'Review sales and movement history',
+    body: 'Reports show synced orders, discounts, stock movements, and end-of-day sessions by business date.',
+  },
+  {
+    section: 'Sync',
+    title: 'Watch tablet sync health',
+    body: 'Sync shows the latest tablet events, pending records, and day-session sync status once the tablet app starts sending data.',
+  },
+  {
+    section: 'Settings',
+    title: 'Load starter data when needed',
+    body: 'Settings can seed the HK baseline menu, inventory, and recipe rules. You can replay this guide from there anytime.',
+  },
+] as const
+
+const movementOptions: { value: StockMovementKind; label: string; helper: string }[] = [
+  { value: 'stock_in', label: 'Stock-in', helper: 'Adds new delivered stock.' },
+  { value: 'wastage', label: 'Wastage', helper: 'Deducts stock used but not sold.' },
+  { value: 'spoilage', label: 'Spoilage', helper: 'Deducts expired or damaged stock.' },
+  { value: 'mistake', label: 'Mistake', helper: 'Deducts stock lost from order mistakes.' },
+  { value: 'adjustment', label: 'Count adjustment', helper: 'Sets stock to the counted quantity.' },
+]
 
 const baselineMenuItems = [
   ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
@@ -473,6 +527,13 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     currentStock: '',
     lowStockThreshold: '',
   })
+  const [movementForm, setMovementForm] = useState({
+    inventoryItemId: '',
+    movementType: 'stock_in' as StockMovementKind,
+    quantity: '',
+    businessDate: getBusinessDate(),
+    notes: '',
+  })
   const [recipeBatchForm, setRecipeBatchForm] = useState({
     menuItemId: '',
     appliesTo: 'base',
@@ -483,6 +544,14 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   ])
   const [formMessage, setFormMessage] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
+  const [isTutorialOpen, setIsTutorialOpen] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.localStorage.getItem(tutorialStorageKey) !== 'true'
+  })
+  const [tutorialStepIndex, setTutorialStepIndex] = useState(0)
   const todayBusinessDate = getBusinessDate()
   const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
   const reorderCount = inventoryItems.filter((item) => getStockStatus(item) === 'Reorder' || getStockStatus(item) === 'Critical').length
@@ -558,6 +627,16 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     }
   }, [branch.id])
 
+  function openTutorial() {
+    setTutorialStepIndex(0)
+    setIsTutorialOpen(true)
+  }
+
+  function closeTutorial() {
+    window.localStorage.setItem(tutorialStorageKey, 'true')
+    setIsTutorialOpen(false)
+  }
+
   function resetMenuForm() {
     setEditingMenuId('')
     setMenuForm({
@@ -579,6 +658,16 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       buyingCost: '',
       currentStock: '',
       lowStockThreshold: '',
+    })
+  }
+
+  function resetMovementForm() {
+    setMovementForm({
+      inventoryItemId: '',
+      movementType: 'stock_in',
+      quantity: '',
+      businessDate: getBusinessDate(),
+      notes: '',
     })
   }
 
@@ -669,6 +758,50 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     }
 
     resetInventoryForm()
+  }
+
+  async function handleCreateStockMovement(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    const inventoryItem = inventoryItems.find((item) => item.id === movementForm.inventoryItemId)
+    const quantity = Number(movementForm.quantity)
+
+    if (!inventoryItem || quantity < 0 || Number.isNaN(quantity) || (movementForm.movementType !== 'adjustment' && quantity === 0)) {
+      setFormMessage('Choose an inventory item and enter a valid quantity.')
+      return
+    }
+
+    const nextStock =
+      movementForm.movementType === 'stock_in'
+        ? inventoryItem.currentStock + quantity
+        : movementForm.movementType === 'adjustment'
+          ? quantity
+          : Math.max(inventoryItem.currentStock - quantity, 0)
+
+    const movementQuantity = nextStock - inventoryItem.currentStock
+
+    await Promise.all([
+      updateDoc(doc(db, 'inventoryItems', inventoryItem.id), {
+        currentStock: nextStock,
+        updatedAt: serverTimestamp(),
+      }),
+      addDoc(collection(db, 'stockMovements'), {
+        branchId: branch.id,
+        inventoryItemId: inventoryItem.id,
+        inventoryItemName: inventoryItem.name,
+        movementType: movementForm.movementType,
+        quantity: movementQuantity,
+        unit: inventoryItem.unit,
+        sourceType: 'owner_dashboard',
+        businessDate: movementForm.businessDate,
+        notes: movementForm.notes.trim() || null,
+        createdAt: serverTimestamp(),
+      }),
+    ])
+
+    setFormMessage(`${getMovementLabel(movementForm.movementType)} recorded for ${inventoryItem.name}.`)
+    resetMovementForm()
   }
 
   function addRecipeDraftLine() {
@@ -887,9 +1020,15 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               {profile.displayName} - {profile.role} - {branchStatus}
             </p>
           </div>
-          <div className="sync-pill">
-            <Cloud size={18} />
-            Firestore connected
+          <div className="topbar-actions">
+            <button className="secondary-button compact-button" onClick={openTutorial} type="button">
+              <HelpCircle size={18} />
+              Guide
+            </button>
+            <div className="sync-pill">
+              <Cloud size={18} />
+              Firestore connected
+            </div>
           </div>
         </header>
 
@@ -1126,6 +1265,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
+            <StockMovementPanel
+              form={movementForm}
+              inventoryItems={inventoryItems}
+              onChange={setMovementForm}
+              onSubmit={handleCreateStockMovement}
+            />
             <InventoryAlertsPanel inventoryItems={inventoryItems} onEdit={startEditingInventoryItem} />
           </section>
         ) : null}
@@ -1252,6 +1397,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 {isSeeding ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
                 Load starter data
               </button>
+              <button className="secondary-button seed-button" onClick={openTutorial} type="button">
+                <HelpCircle size={18} />
+                Replay dashboard guide
+              </button>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
             <article className="panel">
@@ -1279,7 +1428,196 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           </article>
         ) : null}
       </section>
+      {isTutorialOpen ? (
+        <TutorialModal
+          activeIndex={tutorialStepIndex}
+          onClose={closeTutorial}
+          onSelectSection={(section) => setActiveSection(section)}
+          onStepChange={setTutorialStepIndex}
+        />
+      ) : null}
     </main>
+  )
+}
+
+function TutorialModal({
+  activeIndex,
+  onClose,
+  onSelectSection,
+  onStepChange,
+}: {
+  activeIndex: number
+  onClose: () => void
+  onSelectSection: (section: ActiveSection) => void
+  onStepChange: (index: number) => void
+}) {
+  const step = tutorialSteps[activeIndex]
+  const isFirstStep = activeIndex === 0
+  const isLastStep = activeIndex === tutorialSteps.length - 1
+
+  function goToStep(nextIndex: number) {
+    const boundedIndex = Math.min(Math.max(nextIndex, 0), tutorialSteps.length - 1)
+    onStepChange(boundedIndex)
+    onSelectSection(tutorialSteps[boundedIndex].section as ActiveSection)
+  }
+
+  return (
+    <div className="tutorial-backdrop" role="presentation">
+      <section aria-labelledby="tutorial-title" aria-modal="true" className="tutorial-modal" role="dialog">
+        <button aria-label="Close guide" className="icon-button tutorial-close" onClick={onClose} type="button">
+          <X size={18} />
+        </button>
+        <div className="tutorial-icon">
+          <HelpCircle size={26} />
+        </div>
+        <p className="eyebrow">Dashboard guide</p>
+        <h2 id="tutorial-title">{step.title}</h2>
+        <p className="tutorial-copy">{step.body}</p>
+        <div className="tutorial-step-card">
+          <span>{activeIndex + 1}</span>
+          <div>
+            <strong>{step.section}</strong>
+            <p>{isLastStep ? 'You are ready to review the system with the owner.' : 'This section is highlighted in the sidebar.'}</p>
+          </div>
+        </div>
+        <div className="tutorial-progress" aria-label="Guide progress">
+          {tutorialSteps.map((item, index) => (
+            <button
+              aria-label={`Go to ${item.section}`}
+              className={index === activeIndex ? 'active' : ''}
+              key={item.section}
+              onClick={() => goToStep(index)}
+              type="button"
+            />
+          ))}
+        </div>
+        <div className="tutorial-actions">
+          <button className="secondary-button" disabled={isFirstStep} onClick={() => goToStep(activeIndex - 1)} type="button">
+            <ChevronLeft size={18} />
+            Back
+          </button>
+          <button className="secondary-button" onClick={onClose} type="button">
+            Skip
+          </button>
+          <button
+            className="primary-button"
+            onClick={isLastStep ? onClose : () => goToStep(activeIndex + 1)}
+            type="button"
+          >
+            {isLastStep ? 'Finish' : 'Next'}
+            {!isLastStep ? <ChevronRight size={18} /> : null}
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function StockMovementPanel({
+  form,
+  inventoryItems,
+  onChange,
+  onSubmit,
+}: {
+  form: {
+    inventoryItemId: string
+    movementType: StockMovementKind
+    quantity: string
+    businessDate: string
+    notes: string
+  }
+  inventoryItems: InventoryItemRecord[]
+  onChange: React.Dispatch<React.SetStateAction<{
+    inventoryItemId: string
+    movementType: StockMovementKind
+    quantity: string
+    businessDate: string
+    notes: string
+  }>>
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+}) {
+  const selectedItem = inventoryItems.find((item) => item.id === form.inventoryItemId)
+  const selectedMovement = movementOptions.find((option) => option.value === form.movementType)
+
+  return (
+    <article className="panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Operations</p>
+          <h2>Record stock movement</h2>
+        </div>
+        <ArrowDownUp size={22} />
+      </div>
+      <form className="form-grid" onSubmit={onSubmit}>
+        <label>
+          Inventory item
+          <select
+            onChange={(event) => onChange((draft) => ({ ...draft, inventoryItemId: event.target.value }))}
+            required
+            value={form.inventoryItemId}
+          >
+            <option value="">Choose item</option>
+            {inventoryItems.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} ({formatQuantity(item.currentStock)} {item.unit})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Movement
+          <select
+            onChange={(event) =>
+              onChange((draft) => ({ ...draft, movementType: event.target.value as StockMovementKind }))
+            }
+            value={form.movementType}
+          >
+            {movementOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {form.movementType === 'adjustment' ? 'Counted stock' : 'Quantity'}
+          <input
+            min="0"
+            onChange={(event) => onChange((draft) => ({ ...draft, quantity: event.target.value }))}
+            placeholder={selectedItem ? `in ${selectedItem.unit}` : 'ex: 10'}
+            required
+            step="0.001"
+            type="number"
+            value={form.quantity}
+          />
+        </label>
+        <label>
+          Business date
+          <input
+            onChange={(event) => onChange((draft) => ({ ...draft, businessDate: event.target.value }))}
+            required
+            type="date"
+            value={form.businessDate}
+          />
+        </label>
+        <label className="wide-field">
+          Notes
+          <input
+            onChange={(event) => onChange((draft) => ({ ...draft, notes: event.target.value }))}
+            placeholder="ex: supplier delivery / closing count"
+            value={form.notes}
+          />
+        </label>
+        <p className="movement-helper">
+          {selectedMovement?.helper}
+          {selectedItem ? ` Current stock: ${formatQuantity(selectedItem.currentStock)} ${selectedItem.unit}.` : ''}
+        </p>
+        <button className="primary-button form-submit" type="submit">
+          <Plus size={18} />
+          Record movement
+        </button>
+      </form>
+    </article>
   )
 }
 
@@ -1294,30 +1632,42 @@ function ReportsPanel({
   stockMovements: StockMovementRecord[]
   todayBusinessDate: string
 }) {
+  const [selectedBusinessDate, setSelectedBusinessDate] = useState(todayBusinessDate)
   const openOrders = orders.filter(isOpenOrder)
-  const todayOrders = openOrders.filter((order) => order.businessDate === todayBusinessDate)
-  const todaySales = todayOrders.reduce((total, order) => total + (order.netAmount ?? order.grossAmount ?? 0), 0)
-  const totalDiscounts = todayOrders.reduce((total, order) => total + (order.discountAmount ?? 0), 0)
-  const recentMovements = stockMovements.slice(0, 8)
+  const selectedOrders = openOrders.filter((order) => order.businessDate === selectedBusinessDate)
+  const selectedSales = selectedOrders.reduce((total, order) => total + (order.netAmount ?? order.grossAmount ?? 0), 0)
+  const totalDiscounts = selectedOrders.reduce((total, order) => total + (order.discountAmount ?? 0), 0)
+  const recentMovements = stockMovements
+    .filter((movement) => movement.businessDate === selectedBusinessDate)
+    .slice(0, 8)
+  const selectedDaySessions = daySessions.filter((session) => session.businessDate === selectedBusinessDate)
 
   return (
     <section className="screen-grid reports-grid">
       <article className="panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Today</p>
+            <p className="eyebrow">Selected date</p>
             <h2>Sales summary</h2>
           </div>
           <BarChart3 size={22} />
         </div>
+        <label className="report-date-filter">
+          Business date
+          <input
+            onChange={(event) => setSelectedBusinessDate(event.target.value)}
+            type="date"
+            value={selectedBusinessDate}
+          />
+        </label>
         <div className="summary-grid">
           <div>
             <p>Orders</p>
-            <strong>{todayOrders.length}</strong>
+            <strong>{selectedOrders.length}</strong>
           </div>
           <div>
             <p>Net sales</p>
-            <strong>{money(todaySales)}</strong>
+            <strong>{money(selectedSales)}</strong>
           </div>
           <div>
             <p>Discounts</p>
@@ -1325,8 +1675,8 @@ function ReportsPanel({
           </div>
         </div>
         <div className="table-list report-list">
-          {todayOrders.length ? (
-            todayOrders.slice(0, 6).map((order) => (
+          {selectedOrders.length ? (
+            selectedOrders.slice(0, 6).map((order) => (
               <div className="report-row" key={order.id}>
                 <div>
                   <strong>{order.orderType === 'take_out' ? 'Take-out order' : 'Dine-in order'}</strong>
@@ -1341,7 +1691,7 @@ function ReportsPanel({
               </div>
             ))
           ) : (
-            <p className="empty-state">No synced orders for {todayBusinessDate} yet.</p>
+            <p className="empty-state">No synced orders for {selectedBusinessDate} yet.</p>
           )}
         </div>
       </article>
@@ -1385,8 +1735,8 @@ function ReportsPanel({
           <ClipboardList size={22} />
         </div>
         <div className="table-list report-list">
-          {daySessions.length ? (
-            daySessions.slice(0, 6).map((session) => (
+          {selectedDaySessions.length ? (
+            selectedDaySessions.map((session) => (
               <div className="report-row" key={session.id}>
                 <div>
                   <strong>{session.businessDate}</strong>
@@ -1400,7 +1750,7 @@ function ReportsPanel({
               </div>
             ))
           ) : (
-            <p className="empty-state">No day sessions have synced yet.</p>
+            <p className="empty-state">No day session for {selectedBusinessDate} yet.</p>
           )}
         </div>
       </article>

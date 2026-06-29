@@ -176,6 +176,14 @@
   gap: 18px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: #806f5c;
@@ -330,17 +338,31 @@ h2 {
   cursor: pointer;
 }
 
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.compact-button {
+  min-height: 42px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.form-grid label {
+.form-grid label,
+.report-date-filter {
   display: grid;
   gap: 7px;
   color: #4d4238;
   font-weight: 800;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
 }
 
 .recipe-builder {
@@ -406,6 +428,7 @@ h2 {
 
 .form-grid input,
 .form-grid select,
+.report-date-filter input,
 .recipe-draft-row input,
 .recipe-draft-row select {
   min-height: 42px;
@@ -420,6 +443,7 @@ h2 {
 
 .form-grid input:focus,
 .form-grid select:focus,
+.report-date-filter input:focus,
 .recipe-draft-row input:focus,
 .recipe-draft-row select:focus {
   outline: 3px solid rgba(255, 217, 26, 0.45);
@@ -431,6 +455,14 @@ h2 {
 .recipe-draft-row input::placeholder {
   color: #918579;
   font-weight: 400;
+}
+
+.movement-helper {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #6f6256;
+  font-size: 0.88rem;
+  font-weight: 800;
 }
 
 .currency-field {
@@ -600,6 +632,11 @@ h2 {
   margin-bottom: 16px;
 }
 
+.report-date-filter {
+  max-width: 220px;
+  margin-bottom: 16px;
+}
+
 .summary-grid div {
   min-height: 86px;
   display: grid;
@@ -703,6 +740,111 @@ h2 {
   font-weight: 900;
 }
 
+.tutorial-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(23, 18, 15, 0.66);
+}
+
+.tutorial-modal {
+  position: relative;
+  width: min(560px, 100%);
+  display: grid;
+  gap: 16px;
+  border-radius: 8px;
+  padding: 26px;
+  background: #ffffff;
+  color: #17120f;
+  border: 1px solid #eadfce;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+
+.tutorial-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.tutorial-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #ffd91a;
+  color: #17120f;
+  border: 2px solid #17120f;
+}
+
+.tutorial-modal h2 {
+  font-size: 1.45rem;
+}
+
+.tutorial-copy {
+  margin-bottom: 0;
+  color: #5f5349;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.tutorial-step-card {
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #eee2d1;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbf8f1;
+}
+
+.tutorial-step-card span {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #d71920;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.tutorial-step-card p {
+  margin-bottom: 0;
+  color: #71665e;
+  font-size: 0.9rem;
+}
+
+.tutorial-progress {
+  display: flex;
+  gap: 8px;
+}
+
+.tutorial-progress button {
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #eadfce;
+  cursor: pointer;
+}
+
+.tutorial-progress button.active {
+  background: #d71920;
+}
+
+.tutorial-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -724,6 +866,16 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .topbar,
+  .topbar-actions {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .topbar {
+    flex-direction: column;
+  }
+
   .reports-grid .panel:first-child,
   .sync-grid .panel:first-child {
     grid-row: auto;
@@ -737,6 +889,10 @@ h2 {
   .report-row,
   .report-row.movement-row {
     grid-template-columns: 1fr;
+  }
+
+  .report-date-filter {
+    max-width: none;
   }
 
   .recipe-draft-row {
