@@ -659,6 +659,26 @@ h2 {
   font-weight: 900;
 }
 
+.compact-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  border-top: 1px solid #eee2d1;
+  padding-top: 12px;
+  color: #71665e;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.compact-pagination .compact-button {
+  min-height: 34px;
+  padding: 0 10px;
+  background: #fffdf8;
+}
+
 .table-row,
 .alert-row,
 .recipe-row {

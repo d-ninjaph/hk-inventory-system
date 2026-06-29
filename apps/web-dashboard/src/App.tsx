@@ -181,6 +181,7 @@ const navItems = [
 ]
 
 const unitOptions = ['pc', 'tub', 'kilo', 'gram', 'gallon', 'ml', 'liter'] as const
+const compactInventoryAlertPageSize = 10
 
 const tutorialStorageKey = 'hkInventoryDashboardTutorialSeen'
 
@@ -1911,6 +1912,42 @@ function PaginationControls({
   )
 }
 
+function CompactPaginationControls({
+  currentPage,
+  onPageChange,
+  pageCount,
+}: {
+  currentPage: number
+  onPageChange: (page: number) => void
+  pageCount: number
+}) {
+  return (
+    <div className="compact-pagination">
+      <button
+        className="secondary-button compact-button"
+        disabled={currentPage <= 1}
+        onClick={() => onPageChange(currentPage - 1)}
+        type="button"
+      >
+        <ChevronLeft size={16} />
+        Previous
+      </button>
+      <span>
+        Page {currentPage} of {pageCount}
+      </span>
+      <button
+        className="secondary-button compact-button"
+        disabled={currentPage >= pageCount}
+        onClick={() => onPageChange(currentPage + 1)}
+        type="button"
+      >
+        Next
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  )
+}
+
 function StockMovementPanel({
   form,
   inventoryItems,
@@ -2453,9 +2490,11 @@ function InventoryAlertsPanel({
   }, [categoryFilter, inventoryItems, searchQuery, stockFilter])
   const pageCount = getPageCount(filteredInventoryItems.length, pageSize)
   const safeCurrentPage = Math.min(currentPage, pageCount)
+  const compactPageCount = getPageCount(inventoryItems.length, compactInventoryAlertPageSize)
+  const safeCompactCurrentPage = Math.min(currentPage, compactPageCount)
   const pagedInventoryItems = showControls
     ? getPagedItems(filteredInventoryItems, safeCurrentPage, pageSize)
-    : inventoryItems
+    : getPagedItems(inventoryItems, safeCompactCurrentPage, compactInventoryAlertPageSize)
 
   return (
     <article className="panel side-panel">
@@ -2518,7 +2557,7 @@ function InventoryAlertsPanel({
           })
         ) : (
           <p className="empty-state">
-            {inventoryItems.length
+            {showControls && inventoryItems.length
               ? 'No inventory items match the current search or filters.'
               : 'No inventory items yet. Add ingredients, packaging, sauces, and supplies.'}
           </p>
@@ -2535,6 +2574,13 @@ function InventoryAlertsPanel({
           pageCount={pageCount}
           pageSize={pageSize}
           resultLabel={getPaginationLabel(filteredInventoryItems.length, safeCurrentPage, pageSize)}
+        />
+      ) : null}
+      {!showControls && inventoryItems.length > compactInventoryAlertPageSize ? (
+        <CompactPaginationControls
+          currentPage={safeCompactCurrentPage}
+          onPageChange={setCurrentPage}
+          pageCount={compactPageCount}
         />
       ) : null}
     </article>
