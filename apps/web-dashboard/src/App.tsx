@@ -1610,14 +1610,10 @@ function TutorialModal({
 }
 
 function ListControls({
-  filterLabel,
   filterOptions,
   filterValue,
   onFilterChange,
-  onPageSizeChange,
   onSearchChange,
-  pageSize,
-  resultLabel,
   secondaryFilterLabel,
   secondaryFilterOptions,
   secondaryFilterValue,
@@ -1625,14 +1621,10 @@ function ListControls({
   searchPlaceholder,
   searchValue,
 }: {
-  filterLabel: string
   filterOptions: { label: string; value: string }[]
   filterValue: string
   onFilterChange: (value: string) => void
-  onPageSizeChange: (value: number) => void
   onSearchChange: (value: string) => void
-  pageSize: number
-  resultLabel: string
   secondaryFilterLabel?: string
   secondaryFilterOptions?: { label: string; value: string }[]
   secondaryFilterValue?: string
@@ -1673,17 +1665,6 @@ function ListControls({
           </select>
         </label>
       ) : null}
-      <label className="select-control page-size-control">
-        {filterLabel}
-        <select onChange={(event) => onPageSizeChange(Number(event.target.value))} value={pageSize}>
-          {pageSizeOptions.map((option) => (
-            <option key={option} value={option}>
-              {option} per page
-            </option>
-          ))}
-        </select>
-      </label>
-      <span className="results-count">{resultLabel}</span>
     </div>
   )
 }
@@ -1691,14 +1672,31 @@ function ListControls({
 function PaginationControls({
   currentPage,
   onPageChange,
+  onPageSizeChange,
   pageCount,
+  pageSize,
+  resultLabel,
 }: {
   currentPage: number
   onPageChange: (page: number) => void
+  onPageSizeChange: (value: number) => void
   pageCount: number
+  pageSize: number
+  resultLabel: string
 }) {
   return (
     <div className="pagination-controls">
+      <span className="results-count">{resultLabel}</span>
+      <label className="page-size-control">
+        Rows
+        <select onChange={(event) => onPageSizeChange(Number(event.target.value))} value={pageSize}>
+          {pageSizeOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
       <button
         className="secondary-button compact-button"
         disabled={currentPage <= 1}
@@ -2160,15 +2158,10 @@ function MenuListPanel({
 
       {showControls ? (
         <ListControls
-          filterLabel="Rows"
           filterOptions={categoryOptions}
           filterValue={categoryFilter}
           onFilterChange={(value) => {
             setCategoryFilter(value)
-            setCurrentPage(1)
-          }}
-          onPageSizeChange={(value) => {
-            setPageSize(value)
             setCurrentPage(1)
           }}
           onSearchChange={(value) => {
@@ -2179,8 +2172,6 @@ function MenuListPanel({
             setStatusFilter(value)
             setCurrentPage(1)
           }}
-          pageSize={pageSize}
-          resultLabel={getPaginationLabel(filteredMenuItems.length, safeCurrentPage, pageSize)}
           searchPlaceholder="Search code, item, or category"
           searchValue={searchQuery}
           secondaryFilterLabel="Status"
@@ -2217,7 +2208,17 @@ function MenuListPanel({
         )}
       </div>
       {showControls && filteredMenuItems.length > pageSize ? (
-        <PaginationControls currentPage={safeCurrentPage} onPageChange={setCurrentPage} pageCount={pageCount} />
+        <PaginationControls
+          currentPage={safeCurrentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value)
+            setCurrentPage(1)
+          }}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          resultLabel={getPaginationLabel(filteredMenuItems.length, safeCurrentPage, pageSize)}
+        />
       ) : null}
     </article>
   )
@@ -2279,15 +2280,10 @@ function InventoryAlertsPanel({
 
       {showControls ? (
         <ListControls
-          filterLabel="Rows"
           filterOptions={categoryOptions}
           filterValue={categoryFilter}
           onFilterChange={(value) => {
             setCategoryFilter(value)
-            setCurrentPage(1)
-          }}
-          onPageSizeChange={(value) => {
-            setPageSize(value)
             setCurrentPage(1)
           }}
           onSearchChange={(value) => {
@@ -2298,8 +2294,6 @@ function InventoryAlertsPanel({
             setStockFilter(value)
             setCurrentPage(1)
           }}
-          pageSize={pageSize}
-          resultLabel={getPaginationLabel(filteredInventoryItems.length, safeCurrentPage, pageSize)}
           searchPlaceholder="Search inventory item"
           searchValue={searchQuery}
           secondaryFilterLabel="Stock"
@@ -2342,7 +2336,17 @@ function InventoryAlertsPanel({
         )}
       </div>
       {showControls && filteredInventoryItems.length > pageSize ? (
-        <PaginationControls currentPage={safeCurrentPage} onPageChange={setCurrentPage} pageCount={pageCount} />
+        <PaginationControls
+          currentPage={safeCurrentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value)
+            setCurrentPage(1)
+          }}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          resultLabel={getPaginationLabel(filteredInventoryItems.length, safeCurrentPage, pageSize)}
+        />
       ) : null}
     </article>
   )
@@ -2400,15 +2404,10 @@ function RecipeListPanel({
       </div>
 
       <ListControls
-        filterLabel="Rows"
         filterOptions={menuCodeOptions}
         filterValue={menuCodeFilter}
         onFilterChange={(value) => {
           setMenuCodeFilter(value)
-          setCurrentPage(1)
-        }}
-        onPageSizeChange={(value) => {
-          setPageSize(value)
           setCurrentPage(1)
         }}
         onSearchChange={(value) => {
@@ -2419,8 +2418,6 @@ function RecipeListPanel({
           setAppliesToFilter(value)
           setCurrentPage(1)
         }}
-        pageSize={pageSize}
-        resultLabel={getPaginationLabel(filteredComponents.length, safeCurrentPage, pageSize)}
         searchPlaceholder="Search menu code, ingredient, or choice"
         searchValue={searchQuery}
         secondaryFilterLabel="Rule"
@@ -2470,7 +2467,17 @@ function RecipeListPanel({
         )}
       </div>
       {filteredComponents.length > pageSize ? (
-        <PaginationControls currentPage={safeCurrentPage} onPageChange={setCurrentPage} pageCount={pageCount} />
+        <PaginationControls
+          currentPage={safeCurrentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value)
+            setCurrentPage(1)
+          }}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          resultLabel={getPaginationLabel(filteredComponents.length, safeCurrentPage, pageSize)}
+        />
       ) : null}
     </article>
   )

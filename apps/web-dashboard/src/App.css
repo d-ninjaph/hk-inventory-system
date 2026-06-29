@@ -540,8 +540,8 @@ h2 {
 }
 
 .list-controls {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(150px, auto) minmax(150px, auto) minmax(140px, auto) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
@@ -576,10 +576,37 @@ h2 {
   cursor: pointer;
 }
 
+.search-control {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.select-control {
+  flex: 0 1 190px;
+}
+
 .page-size-control {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d9cdbc;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fffdf8;
   color: #806f5c;
   font-size: 0.82rem;
+  font-weight: 900;
   text-transform: uppercase;
+}
+
+.page-size-control select {
+  border: 0;
+  background: transparent;
+  color: #17120f;
+  font: inherit;
+  outline: 0;
+  cursor: pointer;
 }
 
 .results-count {
@@ -593,10 +620,16 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
   margin-top: 14px;
+  border-top: 1px solid #eee2d1;
+  padding-top: 12px;
   color: #6f6256;
   font-weight: 800;
+}
+
+.pagination-controls > span {
+  margin-right: auto;
 }
 
 .table-row,
@@ -971,12 +1004,23 @@ h2 {
   }
 
   .list-controls {
-    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .search-control,
+  .select-control {
+    max-width: none;
+    flex-basis: 100%;
   }
 
   .pagination-controls {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .pagination-controls > span {
+    width: 100%;
+    margin-right: 0;
   }
 
   .report-date-filter {
