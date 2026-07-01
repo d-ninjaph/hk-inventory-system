@@ -566,38 +566,21 @@ h2 {
   font-weight: 800;
 }
 
-.select-control {
-  padding-right: 32px;
-}
-
-.select-control::after {
-  content: "";
-  position: absolute;
-  right: 13px;
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid #8b7b68;
-  border-bottom: 2px solid #8b7b68;
-  pointer-events: none;
-  transform: rotate(45deg) translateY(-2px);
-}
-
-.search-control input,
-.select-control select {
+.search-control input {
   width: 100%;
   min-width: 0;
-  appearance: none;
-  -webkit-appearance: none;
   border: 0;
   background: transparent;
   color: #17120f;
   font: inherit;
+  font-size: 0.88rem;
   outline: 0;
 }
 
-.select-control select {
-  padding: 0;
-  cursor: pointer;
+.search-control input::placeholder {
+  color: #928577;
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .search-control {
@@ -606,7 +589,91 @@ h2 {
 }
 
 .select-control {
-  flex: 0 1 190px;
+  flex: 0 1 230px;
+  padding: 0;
+}
+
+.filter-select-trigger {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: transparent;
+  color: #17120f;
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-select-icon,
+.filter-select-label {
+  flex: 0 0 auto;
+  color: #6f6256;
+}
+
+.filter-select-label {
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.filter-select-value {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-select-chevron {
+  flex: 0 0 auto;
+  color: #8b7b68;
+  transition: transform 0.16s ease;
+}
+
+.filter-select-chevron.open {
+  transform: rotate(180deg);
+}
+
+.filter-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 12;
+  width: max(100%, 240px);
+  overflow: hidden;
+  border: 1px solid #d9cdbc;
+  border-radius: 8px;
+  background: #fffdf8;
+  box-shadow: 0 14px 36px rgba(23, 18, 15, 0.16);
+}
+
+.filter-select-option {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: transparent;
+  color: #17120f;
+  font: inherit;
+  font-size: 0.94rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-select-option:hover,
+.filter-select-option:focus-visible {
+  background: #fff3c7;
+  outline: 0;
+}
+
+.filter-select-option.selected {
+  background: #d71920;
+  color: #ffffff;
 }
 
 .page-size-control {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { FirebaseError } from 'firebase/app'
 import {
   AlertTriangle,
@@ -7,6 +7,7 @@ import {
   BookOpen,
   Boxes,
   Beef,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChefHat,
@@ -2070,27 +2071,79 @@ function ListControls({
           value={searchValue}
         />
       </label>
-      <label className="select-control">
-        <SlidersHorizontal size={18} />
-        <select onChange={(event) => onFilterChange(event.target.value)} value={filterValue}>
-          {filterOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FilterSelect
+        icon={<SlidersHorizontal size={17} />}
+        onChange={onFilterChange}
+        options={filterOptions}
+        value={filterValue}
+      />
       {secondaryFilterOptions && secondaryFilterValue !== undefined && onSecondaryFilterChange ? (
-        <label className="select-control">
-          {secondaryFilterLabel || 'Filter'}
-          <select onChange={(event) => onSecondaryFilterChange(event.target.value)} value={secondaryFilterValue}>
-            {secondaryFilterOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FilterSelect
+          label={secondaryFilterLabel || 'Filter'}
+          onChange={onSecondaryFilterChange}
+          options={secondaryFilterOptions}
+          value={secondaryFilterValue}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function FilterSelect({
+  icon,
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  icon?: ReactNode
+  label?: string
+  onChange: (value: string) => void
+  options: { label: string; value: string }[]
+  value: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const selectedOption = options.find((option) => option.value === value) ?? options[0]
+
+  return (
+    <div
+      className="select-control filter-select"
+      onBlur={(event) => {
+        const nextFocus = event.relatedTarget as Node | null
+        if (!nextFocus || !event.currentTarget.contains(nextFocus)) {
+          setIsOpen(false)
+        }
+      }}
+    >
+      <button
+        aria-expanded={isOpen}
+        className="filter-select-trigger"
+        onClick={() => setIsOpen((open) => !open)}
+        type="button"
+      >
+        {icon ? <span className="filter-select-icon">{icon}</span> : null}
+        {label ? <span className="filter-select-label">{label}</span> : null}
+        <span className="filter-select-value">{selectedOption?.label}</span>
+        <ChevronDown className={isOpen ? 'filter-select-chevron open' : 'filter-select-chevron'} size={16} />
+      </button>
+      {isOpen ? (
+        <div className="filter-select-menu" role="listbox">
+          {options.map((option) => (
+            <button
+              aria-selected={option.value === value}
+              className={option.value === value ? 'filter-select-option selected' : 'filter-select-option'}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value)
+                setIsOpen(false)
+              }}
+              role="option"
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       ) : null}
     </div>
   )
