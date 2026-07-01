@@ -651,6 +651,17 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   const [recipeDraftLines, setRecipeDraftLines] = useState<RecipeDraftLine[]>([
     { id: crypto.randomUUID(), inventoryItemId: '', quantity: '', usageUnit: '' },
   ])
+  const [editingRecipeId, setEditingRecipeId] = useState('')
+  const [recipeEditForm, setRecipeEditForm] = useState({
+    menuItemId: '',
+    appliesTo: 'base' as RecipeComponentRecord['appliesTo'],
+    choiceGroup: '',
+    inventoryItemId: '',
+    quantity: '',
+    usageUnit: '',
+  })
+  const [recipeRuleToDelete, setRecipeRuleToDelete] = useState<RecipeComponentRecord | null>(null)
+  const [isDeletingRule, setIsDeletingRule] = useState(false)
   const [formMessage, setFormMessage] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
   const [isTutorialOpen, setIsTutorialOpen] = useState(() => {
@@ -952,6 +963,41 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     setRecipeDraftLines([{ id: crypto.randomUUID(), inventoryItemId: '', quantity: '', usageUnit: '' }])
   }
 
+  function resetRecipeEditForm() {
+    setEditingRecipeId('')
+    setRecipeEditForm({
+      menuItemId: '',
+      appliesTo: 'base',
+      choiceGroup: '',
+      inventoryItemId: '',
+      quantity: '',
+      usageUnit: '',
+    })
+  }
+
+  function startEditingRecipeRule(component: RecipeComponentRecord) {
+    setActiveSection('Recipes')
+    setEditingRecipeId(component.id)
+    setFormMessage('')
+    setRecipeEditForm({
+      menuItemId: component.menuItemId,
+      appliesTo: component.appliesTo,
+      choiceGroup: component.choiceGroup ?? '',
+      inventoryItemId: component.inventoryItemId,
+      quantity: formatQuantity(component.usageQuantity ?? component.quantity),
+      usageUnit: component.usageUnit ?? component.unit,
+    })
+  }
+
+  function updateRecipeEditInventoryItem(inventoryItemId: string) {
+    const inventoryItem = inventoryItems.find((item) => item.id === inventoryItemId)
+    setRecipeEditForm((form) => ({
+      ...form,
+      inventoryItemId,
+      usageUnit: inventoryItem?.unit ?? '',
+    }))
+  }
+
   async function handleCreateRecipeBatch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormMessage('')
@@ -997,9 +1043,63 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     setFormMessage(`${validLines.length} recipe rule${validLines.length === 1 ? '' : 's'} saved.`)
   }
 
-  async function handleDeleteRecipeComponent(componentId: string) {
-    await deleteDoc(doc(db, 'recipeComponents', componentId))
-    setFormMessage('Recipe component removed.')
+  async function handleUpdateRecipeRule(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormMessage('')
+
+    const menuItem = menuItems.find((item) => item.id === recipeEditForm.menuItemId)
+    const inventoryItem = inventoryItems.find((item) => item.id === recipeEditForm.inventoryItemId)
+    const usageQuantity = Number(recipeEditForm.quantity)
+
+    if (!editingRecipeId || !menuItem || !inventoryItem || usageQuantity <= 0 || Number.isNaN(usageQuantity)) {
+      setFormMessage('Choose a menu item, inventory item, and valid quantity before updating.')
+      return
+    }
+
+    const stockQuantity = convertToStockUnit(
+      usageQuantity,
+      recipeEditForm.usageUnit || inventoryItem.unit,
+      inventoryItem.unit,
+    )
+
+    await updateDoc(doc(db, 'recipeComponents', editingRecipeId), {
+      menuItemId: menuItem.id,
+      menuItemCode: menuItem.code,
+      inventoryItemId: inventoryItem.id,
+      inventoryItemName: inventoryItem.name,
+      quantity: stockQuantity,
+      unit: inventoryItem.unit,
+      usageQuantity,
+      usageUnit: recipeEditForm.usageUnit || inventoryItem.unit,
+      stockQuantity,
+      stockUnit: inventoryItem.unit,
+      appliesTo: recipeEditForm.appliesTo,
+      choiceGroup: recipeEditForm.choiceGroup.trim() || null,
+      updatedAt: serverTimestamp(),
+    })
+
+    resetRecipeEditForm()
+    setFormMessage('Recipe rule updated.')
+  }
+
+  function requestDeleteRecipeComponent(component: RecipeComponentRecord) {
+    setRecipeRuleToDelete(component)
+  }
+
+  async function confirmDeleteRecipeComponent() {
+    if (!recipeRuleToDelete) {
+      return
+    }
+
+    setIsDeletingRule(true)
+
+    try {
+      await deleteDoc(doc(db, 'recipeComponents', recipeRuleToDelete.id))
+      setFormMessage('Recipe rule deleted.')
+      setRecipeRuleToDelete(null)
+    } finally {
+      setIsDeletingRule(false)
+    }
   }
 
   async function handleSeedBaselineData() {
@@ -1085,6 +1185,18 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       setIsSeeding(false)
     }
   }
+
+  const recipeEditInventoryItem = inventoryItems.find((item) => item.id === recipeEditForm.inventoryItemId)
+  const recipeEditUsageUnits = recipeEditInventoryItem ? getCompatibleUsageUnits(recipeEditInventoryItem.unit) : []
+  const recipeEditStockQuantity =
+    recipeEditInventoryItem && recipeEditForm.quantity
+      ? convertToStockUnit(
+          Number(recipeEditForm.quantity),
+          recipeEditForm.usageUnit || recipeEditInventoryItem.unit,
+          recipeEditInventoryItem.unit,
+        )
+      : null
+  const editingRecipeRule = recipeComponents.find((component) => component.id === editingRecipeId)
 
   return (
     <main className="app-shell">
@@ -1466,7 +1578,11 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </form>
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
-            <RecipeListPanel components={recipeComponents} onDelete={handleDeleteRecipeComponent} />
+            <RecipeListPanel
+              components={recipeComponents}
+              onDelete={requestDeleteRecipeComponent}
+              onEdit={startEditingRecipeRule}
+            />
           </section>
         ) : null}
 
@@ -1718,6 +1834,131 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           </section>
         </div>
       ) : null}
+      {editingRecipeId ? (
+        <div className="edit-modal-backdrop" role="presentation">
+          <section aria-labelledby="recipe-edit-title" aria-modal="true" className="edit-modal" role="dialog">
+            <button aria-label="Close recipe edit" className="icon-button tutorial-close" onClick={resetRecipeEditForm} type="button">
+              <X size={18} />
+            </button>
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Edit recipe rule</p>
+                <h2 id="recipe-edit-title">{editingRecipeRule?.inventoryItemName || 'Recipe rule'}</h2>
+              </div>
+            </div>
+            <form className="form-grid" onSubmit={handleUpdateRecipeRule}>
+              <label>
+                Menu item
+                <select
+                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, menuItemId: event.target.value }))}
+                  required
+                  value={recipeEditForm.menuItemId}
+                >
+                  <option value="">Choose menu item</option>
+                  {menuItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.code} - {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Applies to
+                <select
+                  onChange={(event) =>
+                    setRecipeEditForm((form) => ({
+                      ...form,
+                      appliesTo: event.target.value as RecipeComponentRecord['appliesTo'],
+                    }))
+                  }
+                  value={recipeEditForm.appliesTo}
+                >
+                  <option value="base">Base item</option>
+                  <option value="dine_in">Dine-in only</option>
+                  <option value="take_out">Take-out only</option>
+                  <option value="choice">Required choice</option>
+                  <option value="addon">Add-on</option>
+                </select>
+              </label>
+              <label>
+                Choice group
+                <input
+                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, choiceGroup: event.target.value }))}
+                  placeholder="ex: Siomai choice"
+                  value={recipeEditForm.choiceGroup}
+                />
+              </label>
+              <label>
+                Inventory item
+                <select
+                  onChange={(event) => updateRecipeEditInventoryItem(event.target.value)}
+                  required
+                  value={recipeEditForm.inventoryItemId}
+                >
+                  <option value="">Choose inventory item</option>
+                  {inventoryItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.unit})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Quantity
+                <input
+                  min="0"
+                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, quantity: event.target.value }))}
+                  required
+                  step="0.001"
+                  type="number"
+                  value={recipeEditForm.quantity}
+                />
+              </label>
+              <label>
+                Usage unit
+                <select
+                  disabled={!recipeEditInventoryItem}
+                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, usageUnit: event.target.value }))}
+                  required
+                  value={recipeEditForm.usageUnit}
+                >
+                  <option value="">Choose unit</option>
+                  {recipeEditUsageUnits.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {recipeEditInventoryItem && recipeEditStockQuantity !== null ? (
+                <p className="conversion-preview wide-field">
+                  Will deduct {formatQuantity(recipeEditStockQuantity)} {recipeEditInventoryItem.unit} from stock.
+                </p>
+              ) : null}
+              <div className="modal-actions">
+                <button className="secondary-button" onClick={resetRecipeEditForm} type="button">
+                  <X size={18} />
+                  Cancel
+                </button>
+                <button className="primary-button" type="submit">
+                  <Plus size={18} />
+                  Save changes
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+      {recipeRuleToDelete ? (
+        <ConfirmDeleteModal
+          body={`${recipeRuleToDelete.inventoryItemName} will be removed from ${recipeRuleToDelete.menuItemCode}. This cannot be undone.`}
+          confirmLabel="Delete rule"
+          isDeleting={isDeletingRule}
+          onCancel={() => setRecipeRuleToDelete(null)}
+          onConfirm={confirmDeleteRecipeComponent}
+          title="Delete recipe rule?"
+        />
+      ) : null}
     </main>
   )
 }
@@ -1851,6 +2092,50 @@ function ListControls({
           </select>
         </label>
       ) : null}
+    </div>
+  )
+}
+
+function ConfirmDeleteModal({
+  body,
+  confirmLabel,
+  isDeleting,
+  onCancel,
+  onConfirm,
+  title,
+}: {
+  body: string
+  confirmLabel: string
+  isDeleting: boolean
+  onCancel: () => void
+  onConfirm: () => void
+  title: string
+}) {
+  return (
+    <div className="edit-modal-backdrop" role="presentation">
+      <section aria-labelledby="delete-confirm-title" aria-modal="true" className="edit-modal confirm-modal" role="dialog">
+        <button aria-label="Close delete confirmation" className="icon-button tutorial-close" onClick={onCancel} type="button">
+          <X size={18} />
+        </button>
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Confirm delete</p>
+            <h2 id="delete-confirm-title">{title}</h2>
+          </div>
+          <AlertTriangle size={22} />
+        </div>
+        <p className="confirm-body">{body}</p>
+        <div className="modal-actions">
+          <button className="secondary-button" disabled={isDeleting} onClick={onCancel} type="button">
+            <X size={18} />
+            Cancel
+          </button>
+          <button className="primary-button danger-button" disabled={isDeleting} onClick={onConfirm} type="button">
+            {isDeleting ? <Loader2 className="spin" size={18} /> : <Trash2 size={18} />}
+            {confirmLabel}
+          </button>
+        </div>
+      </section>
     </div>
   )
 }
@@ -2590,9 +2875,11 @@ function InventoryAlertsPanel({
 function RecipeListPanel({
   components,
   onDelete,
+  onEdit,
 }: {
   components: RecipeComponentRecord[]
-  onDelete: (componentId: string) => void
+  onDelete: (component: RecipeComponentRecord) => void
+  onEdit: (component: RecipeComponentRecord) => void
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [menuCodeFilter, setMenuCodeFilter] = useState('all')
@@ -2683,14 +2970,24 @@ function RecipeListPanel({
                   {component.choiceGroup ? ` - ${component.choiceGroup}` : ''}
                 </p>
               </div>
-              <button
-                aria-label={`Remove ${component.inventoryItemName}`}
-                className="icon-button"
-                onClick={() => onDelete(component.id)}
-                type="button"
-              >
-                <Trash2 size={18} />
-              </button>
+              <div className="row-actions">
+                <button
+                  aria-label={`Edit ${component.inventoryItemName}`}
+                  className="icon-button neutral"
+                  onClick={() => onEdit(component)}
+                  type="button"
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button
+                  aria-label={`Delete ${component.inventoryItemName}`}
+                  className="icon-button"
+                  onClick={() => onDelete(component)}
+                  type="button"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
           ))
         ) : (
