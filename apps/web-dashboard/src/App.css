@@ -553,6 +553,7 @@ h2 {
 
 .search-control,
 .select-control {
+  position: relative;
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -565,10 +566,28 @@ h2 {
   font-weight: 800;
 }
 
+.select-control {
+  padding-right: 32px;
+}
+
+.select-control::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid #8b7b68;
+  border-bottom: 2px solid #8b7b68;
+  pointer-events: none;
+  transform: rotate(45deg) translateY(-2px);
+}
+
 .search-control input,
 .select-control select {
   width: 100%;
   min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
   border: 0;
   background: transparent;
   color: #17120f;
@@ -577,6 +596,7 @@ h2 {
 }
 
 .select-control select {
+  padding: 0;
   cursor: pointer;
 }
 
