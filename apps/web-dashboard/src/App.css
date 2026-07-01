@@ -440,10 +440,8 @@ h2 {
 }
 
 .form-grid input,
-.form-grid select,
 .report-date-filter input,
-.recipe-draft-row input,
-.recipe-draft-row select {
+.recipe-draft-row input {
   min-height: 42px;
   width: 100%;
   border: 1px solid #d9cdbc;
@@ -455,10 +453,8 @@ h2 {
 }
 
 .form-grid input:focus,
-.form-grid select:focus,
 .report-date-filter input:focus,
-.recipe-draft-row input:focus,
-.recipe-draft-row select:focus {
+.recipe-draft-row input:focus {
   outline: 3px solid rgba(255, 217, 26, 0.45);
   border-color: #d71920;
 }
@@ -593,6 +589,16 @@ h2 {
   padding: 0;
 }
 
+.select-control.disabled {
+  opacity: 0.62;
+}
+
+.select-control:focus-within {
+  z-index: 18;
+  outline: 3px solid rgba(255, 217, 26, 0.45);
+  border-color: #d71920;
+}
+
 .filter-select-trigger {
   width: 100%;
   min-height: 40px;
@@ -605,6 +611,10 @@ h2 {
   color: #17120f;
   font: inherit;
   cursor: pointer;
+}
+
+.filter-select-trigger:disabled {
+  cursor: not-allowed;
 }
 
 .filter-select-icon,
@@ -676,29 +686,38 @@ h2 {
   color: #ffffff;
 }
 
+.field-select {
+  width: 100%;
+  flex: none;
+}
+
+.field-select .filter-select-menu {
+  width: max(100%, 280px);
+}
+
 .page-size-control {
   min-height: 34px;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-  border: 1px solid #d9cdbc;
-  border-radius: 8px;
-  padding: 0 10px;
-  background: #fffdf8;
   color: #806f5c;
   font-size: 0.82rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
-.page-size-control select {
-  border: 0;
-  background: transparent;
-  color: #17120f;
-  font: inherit;
-  outline: 0;
-  cursor: pointer;
+.page-size-select {
+  min-height: 34px;
+  flex: 0 0 68px;
+}
+
+.page-size-select .filter-select-trigger {
+  min-height: 32px;
+}
+
+.page-size-select .filter-select-menu {
+  width: 86px;
 }
 
 .results-count {

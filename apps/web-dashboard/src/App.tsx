@@ -170,6 +170,7 @@ type RecipeDraftLine = {
 type StockMovementKind = 'stock_in' | 'wastage' | 'spoilage' | 'mistake' | 'adjustment'
 
 type ActiveSection = 'Overview' | 'Menu' | 'Inventory' | 'Recipes' | 'Reports' | 'Sync' | 'Settings'
+type SelectOption = { label: string; value: string }
 
 const navItems = [
   { label: 'Overview', icon: LayoutDashboard },
@@ -181,7 +182,28 @@ const navItems = [
   { label: 'Settings', icon: Settings },
 ]
 
+const menuCategoryOptions = ['Noodles', 'Rice Meals', 'Dimsum', 'Drinks', 'Add-ons'].map((category) => ({
+  label: category,
+  value: category,
+}))
+const inventoryCategoryOptions = ['Ingredient', 'Packaging', 'Sauce', 'Drink', 'Supply'].map((category) => ({
+  label: category,
+  value: category,
+}))
+const menuStatusOptions: SelectOption[] = [
+  { label: 'Draft', value: 'draft' },
+  { label: 'Ready', value: 'ready' },
+  { label: 'Inactive', value: 'inactive' },
+]
+const recipeAppliesToOptions: SelectOption[] = [
+  { label: 'Base item', value: 'base' },
+  { label: 'Dine-in only', value: 'dine_in' },
+  { label: 'Take-out only', value: 'take_out' },
+  { label: 'Required choice', value: 'choice' },
+  { label: 'Add-on', value: 'addon' },
+]
 const unitOptions = ['pc', 'tub', 'kilo', 'gram', 'gallon', 'ml', 'liter'] as const
+const unitSelectOptions = unitOptions.map((unit) => ({ label: unit, value: unit }))
 const compactInventoryAlertPageSize = 10
 
 const tutorialStorageKey = 'hkInventoryDashboardTutorialSeen'
@@ -1327,16 +1349,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <label>
                   Category
-                  <select
-                    onChange={(event) => setMenuForm((form) => ({ ...form, category: event.target.value }))}
+                  <FilterSelect
+                    className="field-select"
+                    onChange={(value) => setMenuForm((form) => ({ ...form, category: value }))}
+                    options={menuCategoryOptions}
                     value={menuForm.category}
-                  >
-                    <option>Noodles</option>
-                    <option>Rice Meals</option>
-                    <option>Dimsum</option>
-                    <option>Drinks</option>
-                    <option>Add-ons</option>
-                  </select>
+                  />
                 </label>
                 <label>
                   Selling price
@@ -1367,14 +1385,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <label>
                   Status
-                  <select
-                    onChange={(event) => setMenuForm((form) => ({ ...form, status: event.target.value }))}
+                  <FilterSelect
+                    className="field-select"
+                    onChange={(value) => setMenuForm((form) => ({ ...form, status: value }))}
+                    options={menuStatusOptions}
                     value={menuForm.status}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="ready">Ready</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                  />
                 </label>
                 <button className="primary-button form-submit" type="submit">
                   <Plus size={18} />
@@ -1409,30 +1425,21 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </label>
                 <label>
                   Category
-                  <select
-                    onChange={(event) => setInventoryForm((form) => ({ ...form, category: event.target.value }))}
+                  <FilterSelect
+                    className="field-select"
+                    onChange={(value) => setInventoryForm((form) => ({ ...form, category: value }))}
+                    options={inventoryCategoryOptions}
                     value={inventoryForm.category}
-                  >
-                    <option>Ingredient</option>
-                    <option>Packaging</option>
-                    <option>Sauce</option>
-                    <option>Drink</option>
-                    <option>Supply</option>
-                  </select>
+                  />
                 </label>
                 <label>
                   Unit
-                  <select
-                    onChange={(event) => setInventoryForm((form) => ({ ...form, unit: event.target.value }))}
-                    required
+                  <FilterSelect
+                    className="field-select"
+                    onChange={(value) => setInventoryForm((form) => ({ ...form, unit: value }))}
+                    options={unitSelectOptions}
                     value={inventoryForm.unit}
-                  >
-                    {unitOptions.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
                 <label>
                   Buying cost
@@ -1506,35 +1513,24 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 <div className="form-grid">
                   <label>
                     Menu item
-                    <select
-                      onChange={(event) =>
-                        setRecipeBatchForm((form) => ({ ...form, menuItemId: event.target.value }))
-                      }
-                      required
+                    <FilterSelect
+                      className="field-select"
+                      onChange={(value) => setRecipeBatchForm((form) => ({ ...form, menuItemId: value }))}
+                      options={[
+                        { label: 'Choose menu item', value: '' },
+                        ...menuItems.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id })),
+                      ]}
                       value={recipeBatchForm.menuItemId}
-                    >
-                      <option value="">Choose menu item</option>
-                      {menuItems.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.code} - {item.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                   <label>
                     Applies to
-                    <select
-                      onChange={(event) =>
-                        setRecipeBatchForm((form) => ({ ...form, appliesTo: event.target.value }))
-                      }
+                    <FilterSelect
+                      className="field-select"
+                      onChange={(value) => setRecipeBatchForm((form) => ({ ...form, appliesTo: value }))}
+                      options={recipeAppliesToOptions}
                       value={recipeBatchForm.appliesTo}
-                    >
-                      <option value="base">Base item</option>
-                      <option value="dine_in">Dine-in only</option>
-                      <option value="take_out">Take-out only</option>
-                      <option value="choice">Required choice</option>
-                      <option value="addon">Add-on</option>
-                    </select>
+                    />
                   </label>
                   <label>
                     Choice group
@@ -1674,16 +1670,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </label>
               <label>
                 Category
-                <select
-                  onChange={(event) => setMenuForm((form) => ({ ...form, category: event.target.value }))}
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) => setMenuForm((form) => ({ ...form, category: value }))}
+                  options={menuCategoryOptions}
                   value={menuForm.category}
-                >
-                  <option>Noodles</option>
-                  <option>Rice Meals</option>
-                  <option>Dimsum</option>
-                  <option>Drinks</option>
-                  <option>Add-ons</option>
-                </select>
+                />
               </label>
               <label>
                 Selling price
@@ -1712,14 +1704,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </label>
               <label>
                 Status
-                <select
-                  onChange={(event) => setMenuForm((form) => ({ ...form, status: event.target.value }))}
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) => setMenuForm((form) => ({ ...form, status: value }))}
+                  options={menuStatusOptions}
                   value={menuForm.status}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="ready">Ready</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                />
               </label>
               <div className="modal-actions">
                 <button className="secondary-button" onClick={resetMenuForm} type="button">
@@ -1758,30 +1748,21 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </label>
               <label>
                 Category
-                <select
-                  onChange={(event) => setInventoryForm((form) => ({ ...form, category: event.target.value }))}
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) => setInventoryForm((form) => ({ ...form, category: value }))}
+                  options={inventoryCategoryOptions}
                   value={inventoryForm.category}
-                >
-                  <option>Ingredient</option>
-                  <option>Packaging</option>
-                  <option>Sauce</option>
-                  <option>Drink</option>
-                  <option>Supply</option>
-                </select>
+                />
               </label>
               <label>
                 Unit
-                <select
-                  onChange={(event) => setInventoryForm((form) => ({ ...form, unit: event.target.value }))}
-                  required
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) => setInventoryForm((form) => ({ ...form, unit: value }))}
+                  options={unitSelectOptions}
                   value={inventoryForm.unit}
-                >
-                  {unitOptions.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label>
                 Buying cost
@@ -1850,36 +1831,29 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
             <form className="form-grid" onSubmit={handleUpdateRecipeRule}>
               <label>
                 Menu item
-                <select
-                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, menuItemId: event.target.value }))}
-                  required
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) => setRecipeEditForm((form) => ({ ...form, menuItemId: value }))}
+                  options={[
+                    { label: 'Choose menu item', value: '' },
+                    ...menuItems.map((item) => ({ label: `${item.code} - ${item.name}`, value: item.id })),
+                  ]}
                   value={recipeEditForm.menuItemId}
-                >
-                  <option value="">Choose menu item</option>
-                  {menuItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.code} - {item.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label>
                 Applies to
-                <select
-                  onChange={(event) =>
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) =>
                     setRecipeEditForm((form) => ({
                       ...form,
-                      appliesTo: event.target.value as RecipeComponentRecord['appliesTo'],
+                      appliesTo: value as RecipeComponentRecord['appliesTo'],
                     }))
                   }
+                  options={recipeAppliesToOptions}
                   value={recipeEditForm.appliesTo}
-                >
-                  <option value="base">Base item</option>
-                  <option value="dine_in">Dine-in only</option>
-                  <option value="take_out">Take-out only</option>
-                  <option value="choice">Required choice</option>
-                  <option value="addon">Add-on</option>
-                </select>
+                />
               </label>
               <label>
                 Choice group
@@ -1891,18 +1865,15 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </label>
               <label>
                 Inventory item
-                <select
-                  onChange={(event) => updateRecipeEditInventoryItem(event.target.value)}
-                  required
+                <FilterSelect
+                  className="field-select"
+                  onChange={updateRecipeEditInventoryItem}
+                  options={[
+                    { label: 'Choose inventory item', value: '' },
+                    ...inventoryItems.map((item) => ({ label: `${item.name} (${item.unit})`, value: item.id })),
+                  ]}
                   value={recipeEditForm.inventoryItemId}
-                >
-                  <option value="">Choose inventory item</option>
-                  {inventoryItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} ({item.unit})
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               <label>
                 Quantity
@@ -1917,19 +1888,16 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </label>
               <label>
                 Usage unit
-                <select
+                <FilterSelect
+                  className="field-select"
                   disabled={!recipeEditInventoryItem}
-                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, usageUnit: event.target.value }))}
-                  required
+                  onChange={(value) => setRecipeEditForm((form) => ({ ...form, usageUnit: value }))}
+                  options={[
+                    { label: 'Choose unit', value: '' },
+                    ...recipeEditUsageUnits.map((unit) => ({ label: unit, value: unit })),
+                  ]}
                   value={recipeEditForm.usageUnit}
-                >
-                  <option value="">Choose unit</option>
-                  {recipeEditUsageUnits.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
               {recipeEditInventoryItem && recipeEditStockQuantity !== null ? (
                 <p className="conversion-preview wide-field">
@@ -2090,16 +2058,20 @@ function ListControls({
 }
 
 function FilterSelect({
+  className = '',
+  disabled = false,
   icon,
   label,
   onChange,
   options,
   value,
 }: {
+  className?: string
+  disabled?: boolean
   icon?: ReactNode
   label?: string
   onChange: (value: string) => void
-  options: { label: string; value: string }[]
+  options: SelectOption[]
   value: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -2107,7 +2079,7 @@ function FilterSelect({
 
   return (
     <div
-      className="select-control filter-select"
+      className={['select-control filter-select', className, disabled ? 'disabled' : ''].filter(Boolean).join(' ')}
       onBlur={(event) => {
         const nextFocus = event.relatedTarget as Node | null
         if (!nextFocus || !event.currentTarget.contains(nextFocus)) {
@@ -2118,6 +2090,7 @@ function FilterSelect({
       <button
         aria-expanded={isOpen}
         className="filter-select-trigger"
+        disabled={disabled}
         onClick={() => setIsOpen((open) => !open)}
         type="button"
       >
@@ -2126,7 +2099,7 @@ function FilterSelect({
         <span className="filter-select-value">{selectedOption?.label}</span>
         <ChevronDown className={isOpen ? 'filter-select-chevron open' : 'filter-select-chevron'} size={16} />
       </button>
-      {isOpen ? (
+      {isOpen && !disabled ? (
         <div className="filter-select-menu" role="listbox">
           {options.map((option) => (
             <button
@@ -2216,13 +2189,12 @@ function PaginationControls({
       <div className="pagination-actions">
         <label className="page-size-control">
           Rows
-          <select onChange={(event) => onPageSizeChange(Number(event.target.value))} value={pageSize}>
-            {pageSizeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <FilterSelect
+            className="page-size-select"
+            onChange={(value) => onPageSizeChange(Number(value))}
+            options={pageSizeOptions.map((option) => ({ label: String(option), value: String(option) }))}
+            value={String(pageSize)}
+          />
         </label>
         <button
           className="secondary-button compact-button"
@@ -2324,33 +2296,27 @@ function StockMovementPanel({
       <form className="form-grid" onSubmit={onSubmit}>
         <label>
           Inventory item
-          <select
-            onChange={(event) => onChange((draft) => ({ ...draft, inventoryItemId: event.target.value }))}
-            required
+          <FilterSelect
+            className="field-select"
+            onChange={(value) => onChange((draft) => ({ ...draft, inventoryItemId: value }))}
+            options={[
+              { label: 'Choose item', value: '' },
+              ...inventoryItems.map((item) => ({
+                label: `${item.name} (${formatQuantity(item.currentStock)} ${item.unit})`,
+                value: item.id,
+              })),
+            ]}
             value={form.inventoryItemId}
-          >
-            <option value="">Choose item</option>
-            {inventoryItems.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({formatQuantity(item.currentStock)} {item.unit})
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <label>
           Movement
-          <select
-            onChange={(event) =>
-              onChange((draft) => ({ ...draft, movementType: event.target.value as StockMovementKind }))
-            }
+          <FilterSelect
+            className="field-select"
+            onChange={(value) => onChange((draft) => ({ ...draft, movementType: value as StockMovementKind }))}
+            options={movementOptions.map((option) => ({ label: option.label, value: option.value }))}
             value={form.movementType}
-          >
-            {movementOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <label>
           {form.movementType === 'adjustment' ? 'Counted stock' : 'Quantity'}
@@ -3093,18 +3059,15 @@ function RecipeDraftRow({
       <span className="line-number">{lineNumber}</span>
       <label>
         Inventory item
-        <select
-          onChange={(event) => onUpdate(line.id, 'inventoryItemId', event.target.value)}
-          required
+        <FilterSelect
+          className="field-select"
+          onChange={(value) => onUpdate(line.id, 'inventoryItemId', value)}
+          options={[
+            { label: 'Choose inventory item', value: '' },
+            ...inventoryItems.map((item) => ({ label: `${item.name} (${item.unit})`, value: item.id })),
+          ]}
           value={line.inventoryItemId}
-        >
-          <option value="">Choose inventory item</option>
-          {inventoryItems.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} ({item.unit})
-            </option>
-          ))}
-        </select>
+        />
       </label>
       <label>
         Quantity
@@ -3120,19 +3083,16 @@ function RecipeDraftRow({
       </label>
       <label>
         Usage unit
-        <select
+        <FilterSelect
+          className="field-select"
           disabled={!inventoryItem}
-          onChange={(event) => onUpdate(line.id, 'usageUnit', event.target.value)}
-          required
+          onChange={(value) => onUpdate(line.id, 'usageUnit', value)}
+          options={[
+            { label: 'Choose unit', value: '' },
+            ...usageUnits.map((unit) => ({ label: unit, value: unit })),
+          ]}
           value={line.usageUnit}
-        >
-          <option value="">Choose unit</option>
-          {usageUnits.map((unit) => (
-            <option key={unit} value={unit}>
-              {unit}
-            </option>
-          ))}
-        </select>
+        />
       </label>
       <button
         aria-label="Remove recipe row"
