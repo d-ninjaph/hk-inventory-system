@@ -2134,22 +2134,24 @@ function ChoiceGroupField({
   return (
     <label className="choice-group-field">
       Choice group
-      <input
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="Type or choose below"
-        value={value}
-      />
-      <div className="choice-group-suggestions" aria-label="Suggested choice groups">
-        {suggestions.map((suggestion) => (
-          <button
-            className={value === suggestion ? 'choice-group-chip selected' : 'choice-group-chip'}
-            key={suggestion}
-            onClick={() => onChange(suggestion)}
-            type="button"
-          >
-            {suggestion}
-          </button>
-        ))}
+      <div className="choice-group-picker">
+        <input
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Type custom group"
+          value={value}
+        />
+        <div className="choice-group-suggestions" aria-label="Suggested choice groups">
+          {suggestions.map((suggestion) => (
+            <button
+              className={value === suggestion ? 'choice-group-chip selected' : 'choice-group-chip'}
+              key={suggestion}
+              onClick={() => onChange(suggestion)}
+              type="button"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
       </div>
     </label>
   )
