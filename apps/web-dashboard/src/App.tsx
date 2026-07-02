@@ -202,6 +202,7 @@ const recipeAppliesToOptions: SelectOption[] = [
   { label: 'Required choice', value: 'choice' },
   { label: 'Add-on', value: 'addon' },
 ]
+const defaultChoiceGroupSuggestions = ['Siomai type', 'Drink size', 'Noodle size', 'Add-on choice', 'Sauce choice']
 const unitOptions = ['pc', 'tub', 'kilo', 'gram', 'gallon', 'ml', 'liter'] as const
 const unitSelectOptions = unitOptions.map((unit) => ({ label: unit, value: unit }))
 const compactInventoryAlertPageSize = 10
@@ -1220,6 +1221,13 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
         )
       : null
   const editingRecipeRule = recipeComponents.find((component) => component.id === editingRecipeId)
+  const choiceGroupSuggestions = useMemo(() => {
+    const usedGroups = recipeComponents
+      .map((component) => component.choiceGroup?.trim())
+      .filter((choiceGroup): choiceGroup is string => Boolean(choiceGroup))
+
+    return Array.from(new Set([...defaultChoiceGroupSuggestions, ...usedGroups]))
+  }, [recipeComponents])
 
   return (
     <main className="app-shell">
@@ -1532,16 +1540,11 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                       value={recipeBatchForm.appliesTo}
                     />
                   </label>
-                  <label>
-                    Choice group
-                    <input
-                      onChange={(event) =>
-                        setRecipeBatchForm((form) => ({ ...form, choiceGroup: event.target.value }))
-                      }
-                      placeholder="ex: Siomai choice"
-                      value={recipeBatchForm.choiceGroup}
-                    />
-                  </label>
+                  <ChoiceGroupField
+                    onChange={(value) => setRecipeBatchForm((form) => ({ ...form, choiceGroup: value }))}
+                    suggestions={choiceGroupSuggestions}
+                    value={recipeBatchForm.choiceGroup}
+                  />
                 </div>
 
                 <div className="recipe-builder-header">
@@ -1855,14 +1858,11 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   value={recipeEditForm.appliesTo}
                 />
               </label>
-              <label>
-                Choice group
-                <input
-                  onChange={(event) => setRecipeEditForm((form) => ({ ...form, choiceGroup: event.target.value }))}
-                  placeholder="ex: Siomai choice"
-                  value={recipeEditForm.choiceGroup}
-                />
-              </label>
+              <ChoiceGroupField
+                onChange={(value) => setRecipeEditForm((form) => ({ ...form, choiceGroup: value }))}
+                suggestions={choiceGroupSuggestions}
+                value={recipeEditForm.choiceGroup}
+              />
               <label>
                 Inventory item
                 <FilterSelect
@@ -2119,6 +2119,39 @@ function FilterSelect({
         </div>
       ) : null}
     </div>
+  )
+}
+
+function ChoiceGroupField({
+  onChange,
+  suggestions,
+  value,
+}: {
+  onChange: (value: string) => void
+  suggestions: string[]
+  value: string
+}) {
+  return (
+    <label className="choice-group-field">
+      Choice group
+      <input
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Type or choose below"
+        value={value}
+      />
+      <div className="choice-group-suggestions" aria-label="Suggested choice groups">
+        {suggestions.map((suggestion) => (
+          <button
+            className={value === suggestion ? 'choice-group-chip selected' : 'choice-group-chip'}
+            key={suggestion}
+            onClick={() => onChange(suggestion)}
+            type="button"
+          >
+            {suggestion}
+          </button>
+        ))}
+      </div>
+    </label>
   )
 }
 

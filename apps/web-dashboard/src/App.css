@@ -466,6 +466,38 @@ h2 {
   font-weight: 400;
 }
 
+.choice-group-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.choice-group-chip {
+  min-height: 30px;
+  border: 1px solid #eadfce;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #fffdf8;
+  color: #6f6256;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.choice-group-chip:hover,
+.choice-group-chip:focus-visible {
+  border-color: #ffd91a;
+  background: #fff8df;
+  color: #17120f;
+  outline: 0;
+}
+
+.choice-group-chip.selected {
+  border-color: #d71920;
+  background: #ffe2e0;
+  color: #b01820;
+}
+
 .movement-helper {
   grid-column: 1 / -1;
   margin: 0;
