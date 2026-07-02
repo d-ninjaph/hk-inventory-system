@@ -7,6 +7,7 @@ import {
   BookOpen,
   Boxes,
   Beef,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,7 @@ import {
   Cloud,
   CupSoda,
   Database,
+  Download,
   Edit3,
   GlassWater,
   HelpCircle,
@@ -193,7 +195,11 @@ const inventoryCategoryOptions = ['Ingredient', 'Packaging', 'Sauce', 'Drink', '
 const menuStatusOptions: SelectOption[] = [
   { label: 'Draft', value: 'draft' },
   { label: 'Ready', value: 'ready' },
-  { label: 'Inactive', value: 'inactive' },
+  { label: 'Archived', value: 'inactive' },
+]
+const inventoryStatusOptions: SelectOption[] = [
+  { label: 'Active', value: 'active' },
+  { label: 'Archived', value: 'archived' },
 ]
 const recipeAppliesToOptions: SelectOption[] = [
   { label: 'Base item', value: 'base' },
@@ -431,6 +437,22 @@ function formatQuantity(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
 }
 
+function escapeCsvCell(value: unknown) {
+  const text = value === null || value === undefined ? '' : String(value)
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+function downloadCsv(filename: string, headers: string[], rows: unknown[][]) {
+  const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function getLoginErrorMessage(error: unknown) {
   if (error instanceof FirebaseError && error.code === 'auth/too-many-requests') {
     return 'Too many failed login attempts. Please wait a few minutes, then try again.'
@@ -538,10 +560,26 @@ function getMenuItemSubtitle(item: MenuItemRecord) {
   }
 
   if (item.status === 'inactive') {
-    return `${item.category} - Not visible to staff`
+    return `${item.category} - Archived, hidden from staff`
   }
 
   return `${item.category} - Recipe review needed`
+}
+
+function getMenuStatusLabel(status: MenuItemRecord['status']) {
+  return status === 'inactive' ? 'Archived' : status.charAt(0).toUpperCase() + status.slice(1)
+}
+
+function getMenuStatusClass(status: MenuItemRecord['status']) {
+  if (status === 'ready') {
+    return 'ready'
+  }
+
+  if (status === 'inactive') {
+    return 'inactive'
+  }
+
+  return 'draft'
 }
 
 function getRecipeAppliesToLabel(appliesTo: RecipeComponentRecord['appliesTo']) {
@@ -659,6 +697,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     buyingCost: '',
     currentStock: '',
     lowStockThreshold: '',
+    active: 'active',
   })
   const [movementForm, setMovementForm] = useState({
     inventoryItemId: '',
@@ -686,6 +725,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   })
   const [recipeRuleToDelete, setRecipeRuleToDelete] = useState<RecipeComponentRecord | null>(null)
   const [isDeletingRule, setIsDeletingRule] = useState(false)
+  const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false)
   const [formMessage, setFormMessage] = useState('')
   const [isSeeding, setIsSeeding] = useState(false)
   const [isTutorialOpen, setIsTutorialOpen] = useState(() => {
@@ -802,6 +842,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       buyingCost: '',
       currentStock: '',
       lowStockThreshold: '',
+      active: 'active',
     })
   }
 
@@ -840,6 +881,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       buyingCost: String(item.buyingCost),
       currentStock: String(item.currentStock),
       lowStockThreshold: String(item.lowStockThreshold),
+      active: item.active ? 'active' : 'archived',
     })
   }
 
@@ -885,7 +927,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       currentStock: Number(inventoryForm.currentStock),
       lowStockThreshold: Number(inventoryForm.lowStockThreshold),
       supplierPriceType: 'discounted',
-      active: true,
+      active: inventoryForm.active === 'active',
       updatedAt: serverTimestamp(),
     }
 
@@ -1129,6 +1171,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   async function handleSeedBaselineData() {
     setIsSeeding(true)
     setFormMessage('')
+    setIsSeedConfirmOpen(false)
 
     try {
       await Promise.all([
@@ -1322,6 +1365,14 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 onSelectSection={setActiveSection}
                 recipeComponents={recipeComponents}
               />
+              <OwnerTestChecklistPanel
+                inventoryItems={inventoryItems}
+                menuItems={menuItems}
+                onSelectSection={setActiveSection}
+                orders={orders}
+                recipeComponents={recipeComponents}
+                stockMovements={stockMovements}
+              />
             </section>
           </>
         ) : null}
@@ -1447,6 +1498,15 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                     onChange={(value) => setInventoryForm((form) => ({ ...form, unit: value }))}
                     options={unitSelectOptions}
                     value={inventoryForm.unit}
+                  />
+                </label>
+                <label>
+                  Status
+                  <FilterSelect
+                    className="field-select"
+                    onChange={(value) => setInventoryForm((form) => ({ ...form, active: value }))}
+                    options={inventoryStatusOptions}
+                    value={inventoryForm.active}
                   />
                 </label>
                 <label>
@@ -1613,7 +1673,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 Adds starter menu, inventory, and recipe rules based on the standee and supplier discounted prices.
                 Existing seeded records are updated, not duplicated.
               </p>
-              <button className="primary-button seed-button" disabled={isSeeding} onClick={handleSeedBaselineData} type="button">
+              <button className="primary-button seed-button" disabled={isSeeding} onClick={() => setIsSeedConfirmOpen(true)} type="button">
                 {isSeeding ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
                 Load starter data
               </button>
@@ -1765,6 +1825,15 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   onChange={(value) => setInventoryForm((form) => ({ ...form, unit: value }))}
                   options={unitSelectOptions}
                   value={inventoryForm.unit}
+                />
+              </label>
+              <label>
+                Status
+                <FilterSelect
+                  className="field-select"
+                  onChange={(value) => setInventoryForm((form) => ({ ...form, active: value }))}
+                  options={inventoryStatusOptions}
+                  value={inventoryForm.active}
                 />
               </label>
               <label>
@@ -1926,6 +1995,16 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           onCancel={() => setRecipeRuleToDelete(null)}
           onConfirm={confirmDeleteRecipeComponent}
           title="Delete recipe rule?"
+        />
+      ) : null}
+      {isSeedConfirmOpen ? (
+        <ConfirmActionModal
+          body="This will load or update the starter HK menu, inventory, and recipe rules. Use it only when setting up or refreshing baseline data."
+          confirmLabel="Load starter data"
+          isWorking={isSeeding}
+          onCancel={() => setIsSeedConfirmOpen(false)}
+          onConfirm={handleSeedBaselineData}
+          title="Load starter data?"
         />
       ) : null}
     </main>
@@ -2201,6 +2280,50 @@ function ConfirmDeleteModal({
   )
 }
 
+function ConfirmActionModal({
+  body,
+  confirmLabel,
+  isWorking,
+  onCancel,
+  onConfirm,
+  title,
+}: {
+  body: string
+  confirmLabel: string
+  isWorking: boolean
+  onCancel: () => void
+  onConfirm: () => void
+  title: string
+}) {
+  return (
+    <div className="edit-modal-backdrop" role="presentation">
+      <section aria-labelledby="action-confirm-title" aria-modal="true" className="edit-modal confirm-modal" role="dialog">
+        <button aria-label="Close confirmation" className="icon-button tutorial-close" onClick={onCancel} type="button">
+          <X size={18} />
+        </button>
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Confirm action</p>
+            <h2 id="action-confirm-title">{title}</h2>
+          </div>
+          <Database size={22} />
+        </div>
+        <p className="confirm-body">{body}</p>
+        <div className="modal-actions">
+          <button className="secondary-button" disabled={isWorking} onClick={onCancel} type="button">
+            <X size={18} />
+            Cancel
+          </button>
+          <button className="primary-button" disabled={isWorking} onClick={onConfirm} type="button">
+            {isWorking ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
+            {confirmLabel}
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function PaginationControls({
   currentPage,
   onPageChange,
@@ -2411,10 +2534,43 @@ function ReportsPanel({
   const selectedOrders = openOrders.filter((order) => order.businessDate === selectedBusinessDate)
   const selectedSales = selectedOrders.reduce((total, order) => total + (order.netAmount ?? order.grossAmount ?? 0), 0)
   const totalDiscounts = selectedOrders.reduce((total, order) => total + (order.discountAmount ?? 0), 0)
-  const recentMovements = stockMovements
-    .filter((movement) => movement.businessDate === selectedBusinessDate)
-    .slice(0, 8)
+  const selectedMovements = stockMovements.filter((movement) => movement.businessDate === selectedBusinessDate)
+  const recentMovements = selectedMovements.slice(0, 8)
   const selectedDaySessions = daySessions.filter((session) => session.businessDate === selectedBusinessDate)
+
+  function exportOrdersCsv() {
+    downloadCsv(
+      `sales-${selectedBusinessDate}.csv`,
+      ['Business date', 'Created at', 'Order type', 'Status', 'Discount type', 'Discount amount', 'Gross amount', 'Net amount'],
+      selectedOrders.map((order) => [
+        order.businessDate ?? selectedBusinessDate,
+        formatTimestamp(order.createdAt),
+        order.orderType === 'take_out' ? 'Take-out' : 'Dine-in',
+        order.status ?? 'synced',
+        order.discountType || 'None',
+        order.discountAmount ?? 0,
+        order.grossAmount ?? 0,
+        order.netAmount ?? order.grossAmount ?? 0,
+      ]),
+    )
+  }
+
+  function exportMovementsCsv() {
+    downloadCsv(
+      `stock-movements-${selectedBusinessDate}.csv`,
+      ['Business date', 'Item', 'Movement', 'Quantity', 'Unit', 'Source', 'Notes', 'Created at'],
+      selectedMovements.map((movement) => [
+        movement.businessDate ?? selectedBusinessDate,
+        movement.inventoryItemName || movement.inventoryItemId,
+        getMovementLabel(movement.movementType),
+        formatQuantity(movement.quantity),
+        movement.unit || '',
+        movement.sourceType || 'Manual',
+        movement.notes || '',
+        formatTimestamp(movement.createdAt),
+      ]),
+    )
+  }
 
   return (
     <section className="screen-grid reports-grid">
@@ -2434,6 +2590,16 @@ function ReportsPanel({
             value={selectedBusinessDate}
           />
         </label>
+        <div className="report-actions">
+          <button className="secondary-button compact-button" disabled={!selectedOrders.length} onClick={exportOrdersCsv} type="button">
+            <Download size={18} />
+            Export sales CSV
+          </button>
+          <button className="secondary-button compact-button" disabled={!selectedMovements.length} onClick={exportMovementsCsv} type="button">
+            <Download size={18} />
+            Export stock CSV
+          </button>
+        </div>
         <div className="summary-grid">
           <div>
             <p>Orders</p>
@@ -2744,7 +2910,7 @@ function MenuListPanel({
             { label: 'All statuses', value: 'all' },
             { label: 'Draft', value: 'draft' },
             { label: 'Ready', value: 'ready' },
-            { label: 'Inactive', value: 'inactive' },
+            { label: 'Archived', value: 'inactive' },
           ]}
           secondaryFilterValue={statusFilter}
         />
@@ -2760,7 +2926,7 @@ function MenuListPanel({
                 <p>{getMenuItemSubtitle(item)}</p>
               </div>
               <div className="price">{money(item.sellingPrice)}</div>
-              <span className={item.status === 'ready' ? 'badge ready' : 'badge draft'}>{item.status}</span>
+              <span className={`badge ${getMenuStatusClass(item.status)}`}>{getMenuStatusLabel(item.status)}</span>
               <button aria-label={`Edit ${item.name}`} className="icon-button neutral" onClick={() => onEdit(item)} type="button">
                 <Edit3 size={18} />
               </button>
@@ -3146,6 +3312,78 @@ function RecipeDraftRow({
   )
 }
 
+function OwnerTestChecklistPanel({
+  inventoryItems,
+  menuItems,
+  onSelectSection,
+  orders,
+  recipeComponents,
+  stockMovements,
+}: {
+  inventoryItems: InventoryItemRecord[]
+  menuItems: MenuItemRecord[]
+  onSelectSection: (section: ActiveSection) => void
+  orders: OrderRecord[]
+  recipeComponents: RecipeComponentRecord[]
+  stockMovements: StockMovementRecord[]
+}) {
+  const checklistItems = [
+    {
+      done: menuItems.length > 0,
+      label: 'Add or review menu items',
+      section: 'Menu' as ActiveSection,
+    },
+    {
+      done: inventoryItems.length > 0,
+      label: 'Add ingredients, packaging, and supplies',
+      section: 'Inventory' as ActiveSection,
+    },
+    {
+      done: recipeComponents.length > 0,
+      label: 'Connect menu items to recipe rules',
+      section: 'Recipes' as ActiveSection,
+    },
+    {
+      done: stockMovements.length > 0,
+      label: 'Record a stock-in or count adjustment',
+      section: 'Inventory' as ActiveSection,
+    },
+    {
+      done: orders.length > 0 || stockMovements.length > 0,
+      label: 'Open Reports and test CSV export',
+      section: 'Reports' as ActiveSection,
+    },
+  ]
+  const completedCount = checklistItems.filter((item) => item.done).length
+
+  return (
+    <article className="panel owner-checklist-panel">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Owner QA</p>
+          <h2>First test checklist</h2>
+        </div>
+        <ClipboardList size={22} />
+      </div>
+      <p className="subtle">
+        Follow these steps during the first owner walkthrough.
+      </p>
+      <div className="checklist-progress" aria-label={`${completedCount} of ${checklistItems.length} checklist items complete`}>
+        <span style={{ width: `${(completedCount / checklistItems.length) * 100}%` }} />
+      </div>
+      <div className="checklist-list">
+        {checklistItems.map((item) => (
+          <button className="checklist-row" key={item.label} onClick={() => onSelectSection(item.section)} type="button">
+            <span className={item.done ? 'check-dot complete' : 'check-dot'}>{item.done ? <Check size={14} /> : null}</span>
+            <span>{item.label}</span>
+            <ChevronRight size={16} />
+          </button>
+        ))}
+      </div>
+    </article>
+  )
+}
+
 function SetupReadinessPanel({
   inventoryItems,
   menuItems,
@@ -3271,6 +3509,12 @@ function App() {
         }
 
         const nextProfile = profileSnap.data() as UserProfile
+
+        if (!['owner', 'admin'].includes(nextProfile.role)) {
+          setSetupError('This web dashboard is for owners and admins only. Store staff should use the tablet app for now.')
+          return
+        }
+
         setProfile(nextProfile)
 
         const firstBranchId = nextProfile.branchIds?.[0]

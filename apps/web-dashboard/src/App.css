@@ -974,6 +974,13 @@ h2 {
   margin-bottom: 16px;
 }
 
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -6px 0 16px;
+}
+
 .summary-grid div {
   min-height: 86px;
   display: grid;
@@ -1055,9 +1062,73 @@ h2 {
   color: #b01820;
 }
 
+.badge.inactive,
 .stock-status.inactive {
   background: #ece7df;
   color: #665c52;
+}
+
+.owner-checklist-panel {
+  min-width: 0;
+}
+
+.checklist-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eee2d1;
+  margin-bottom: 12px;
+}
+
+.checklist-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #d71920;
+}
+
+.checklist-list {
+  display: grid;
+  gap: 8px;
+}
+
+.checklist-row {
+  min-height: 44px;
+  border: 1px solid #eee2d1;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fbf8f1;
+  color: #17120f;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.checklist-row:hover {
+  border-color: #f0d7a0;
+  background: #fffdf8;
+}
+
+.check-dot {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d9cdbc;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  background: #ffffff;
+}
+
+.check-dot.complete {
+  border-color: #236c2e;
+  background: #e9f8ea;
+  color: #236c2e;
 }
 
 .readiness-list {
@@ -1323,5 +1394,76 @@ h2 {
 
   .conversion-preview {
     grid-column: 2 / 3;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard {
+    padding: 18px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-row,
+  .table-row.editable-row {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .table-row .price,
+  .table-row .badge,
+  .table-row .icon-button {
+    grid-column: 2 / 3;
+    justify-self: start;
+  }
+
+  .alert-row,
+  .alert-row.editable-alert-row {
+    grid-template-columns: minmax(0, 1fr) 40px;
+  }
+
+  .alert-row .stock-status {
+    grid-column: 1 / 2;
+    justify-self: start;
+  }
+
+  .recipe-row {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .recipe-row .row-actions {
+    grid-column: 2 / 3;
+  }
+
+  .recipe-draft-row {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .recipe-draft-row label,
+  .recipe-draft-row .conversion-preview {
+    grid-column: 1 / -1;
+  }
+
+  .recipe-draft-row .icon-button {
+    grid-column: 2 / 3;
+    justify-self: end;
+  }
+
+  .modal-actions,
+  .tutorial-actions,
+  .report-actions {
+    justify-content: stretch;
+  }
+
+  .modal-actions > *,
+  .tutorial-actions > *,
+  .report-actions > * {
+    width: 100%;
+    justify-content: center;
   }
 }
