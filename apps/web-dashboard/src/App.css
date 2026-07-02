@@ -88,6 +88,10 @@
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
   background: #17120f;
   color: #ffffff;
   padding: 22px 18px;
@@ -291,6 +295,24 @@ h2 {
 
 .side-panel {
   grid-row: span 2;
+}
+
+.inventory-grid .side-panel {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.inventory-grid .side-panel .list-controls {
+  align-items: stretch;
+}
+
+.inventory-grid .side-panel .search-control {
+  max-width: none;
+  flex: 1 1 320px;
+}
+
+.inventory-grid .side-panel .select-control {
+  flex: 0 1 240px;
 }
 
 .panel-header {

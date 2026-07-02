@@ -1463,7 +1463,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
         ) : null}
 
         {activeSection === 'Inventory' ? (
-          <section className="screen-grid">
+          <section className="screen-grid inventory-grid">
             <article className="panel">
               <div className="panel-header">
                 <div>
