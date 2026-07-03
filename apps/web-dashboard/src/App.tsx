@@ -17,7 +17,6 @@ import {
   ClipboardList,
   Cloud,
   CupSoda,
-  Database,
   Download,
   Edit3,
   GlassWater,
@@ -50,7 +49,6 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
   type Timestamp,
@@ -248,8 +246,8 @@ const tutorialSteps = [
   },
   {
     section: 'Settings',
-    title: 'Prepare a clean sample when needed',
-    body: 'Settings can reset the branch to a small owner testing sample. Use it before onboarding, then let owners replace the sample with real data.',
+    title: 'Use the guide anytime',
+    body: 'Settings keeps the dashboard guide available so owners can replay the walkthrough while they test the system.',
   },
 ] as const
 
@@ -262,37 +260,6 @@ const movementOptions: { value: StockMovementKind; label: string; helper: string
 ]
 
 const pageSizeOptions = [10, 25, 50] as const
-
-const baselineMenuItems = [
-  ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
-  ['gulaman-medium', 'GUL-M', 'Black Gulaman Medium', 'Drinks', 20, 16],
-  ['addon-siomai', 'ADD-SIO', 'Additional Pork/Beef/Chicken Siomai or Wanton', 'Add-ons', 10, 8],
-] as const
-
-const baselineInventoryItems = [
-  ['noodles', 'Chow mein noodles', 'Ingredient', 'kilo', 175, 5, 2],
-  ['beef-siomai', 'Beef siomai', 'Ingredient', 'pc', 4, 60, 20],
-  ['regular-tumbler', 'Regular tumbler/container', 'Packaging', 'pc', 3.5, 25, 10],
-  ['gulaman-powder', 'Gulaman powder', 'Ingredient', 'kilo', 395, 2, 1],
-  ['caramel-powder', 'Caramel powder', 'Ingredient', 'pc', 5, 0, 10],
-] as const
-
-const baselineRecipeComponents = [
-  ['hk1', 'noodles', 0.08, 'base', ''],
-  ['hk1', 'beef-siomai', 2, 'choice', 'Siomai choice'],
-  ['hk1', 'regular-tumbler', 1, 'take_out', ''],
-  ['gulaman-medium', 'gulaman-powder', 0.02, 'base', ''],
-  ['gulaman-medium', 'caramel-powder', 1, 'base', ''],
-] as const
-
-const baselineStockMovements = [
-  ['noodles', 'stock_in', 5, 'Initial sample stock-in'],
-  ['beef-siomai', 'stock_in', 60, 'Initial sample delivery'],
-] as const
-
-function branchDocId(branchId: string, seedId: string) {
-  return `${branchId}_${seedId}`
-}
 
 function money(value: number) {
   return new Intl.NumberFormat('en-PH', {
@@ -666,9 +633,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   })
   const [recipeRuleToDelete, setRecipeRuleToDelete] = useState<RecipeComponentRecord | null>(null)
   const [isDeletingRule, setIsDeletingRule] = useState(false)
-  const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false)
   const [formMessage, setFormMessage] = useState('')
-  const [isSeeding, setIsSeeding] = useState(false)
   const [isTutorialOpen, setIsTutorialOpen] = useState(() => {
     if (typeof window === 'undefined') {
       return false
@@ -1109,124 +1074,6 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
     }
   }
 
-  async function handleSeedBaselineData() {
-    setIsSeeding(true)
-    setFormMessage('')
-    setIsSeedConfirmOpen(false)
-
-    try {
-      await Promise.all([
-        ...menuItems.map((item) => deleteDoc(doc(db, 'menuItems', item.id))),
-        ...inventoryItems.map((item) => deleteDoc(doc(db, 'inventoryItems', item.id))),
-        ...recipeComponents.map((component) => deleteDoc(doc(db, 'recipeComponents', component.id))),
-        ...stockMovements.map((movement) => deleteDoc(doc(db, 'stockMovements', movement.id))),
-        ...orders.map((order) => deleteDoc(doc(db, 'orders', order.id))),
-        ...daySessions.map((session) => deleteDoc(doc(db, 'daySessions', session.id))),
-        ...syncEvents.map((event) => deleteDoc(doc(db, 'syncEvents', event.id))),
-      ])
-
-      await Promise.all([
-        ...baselineMenuItems.map(([seedId, code, name, category, sellingPrice, seniorPwdPrice]) =>
-          setDoc(
-            doc(db, 'menuItems', branchDocId(branch.id, seedId)),
-            {
-              branchId: branch.id,
-              code,
-              name,
-              category,
-              sellingPrice,
-              seniorPwdPrice,
-              status: 'ready',
-              setupNotes: 'Owner sample item - replace with actual menu data',
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true },
-          ),
-        ),
-        ...baselineInventoryItems.map(([seedId, name, category, unit, buyingCost, currentStock, lowStockThreshold]) =>
-          setDoc(
-            doc(db, 'inventoryItems', branchDocId(branch.id, seedId)),
-            {
-              branchId: branch.id,
-              name,
-              category,
-              unit,
-              buyingCost,
-              currentStock,
-              lowStockThreshold,
-              supplierPriceType: 'discounted',
-              active: true,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true },
-          ),
-        ),
-      ])
-
-      await Promise.all(
-        baselineRecipeComponents.map(([menuSeedId, inventorySeedId, quantity, appliesTo, choiceGroup]) => {
-          const menuItem = baselineMenuItems.find(([seedId]) => seedId === menuSeedId)
-          const inventoryItem = baselineInventoryItems.find(([seedId]) => seedId === inventorySeedId)
-          const componentId = branchDocId(
-            branch.id,
-            `${menuSeedId}_${inventorySeedId}_${appliesTo}_${choiceGroup || 'base'}`,
-          )
-
-          return setDoc(
-            doc(db, 'recipeComponents', componentId),
-            {
-              branchId: branch.id,
-              menuItemId: branchDocId(branch.id, menuSeedId),
-              menuItemCode: menuItem?.[1] ?? menuSeedId.toUpperCase(),
-              inventoryItemId: branchDocId(branch.id, inventorySeedId),
-              inventoryItemName: inventoryItem?.[1] ?? inventorySeedId,
-              quantity,
-              unit: inventoryItem?.[3] ?? 'pcs',
-              usageQuantity: quantity,
-              usageUnit: inventoryItem?.[3] ?? 'pc',
-              stockQuantity: quantity,
-              stockUnit: inventoryItem?.[3] ?? 'pc',
-              appliesTo,
-              choiceGroup: choiceGroup || null,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true },
-          )
-        }),
-      )
-
-      await Promise.all(
-        baselineStockMovements.map(([inventorySeedId, movementType, quantity, notes]) => {
-          const inventoryItem = baselineInventoryItems.find(([seedId]) => seedId === inventorySeedId)
-
-          return setDoc(
-            doc(db, 'stockMovements', branchDocId(branch.id, `sample_${movementType}_${inventorySeedId}`)),
-            {
-              branchId: branch.id,
-              inventoryItemId: branchDocId(branch.id, inventorySeedId),
-              inventoryItemName: inventoryItem?.[1] ?? inventorySeedId,
-              movementType,
-              quantity,
-              unit: inventoryItem?.[3] ?? 'pc',
-              sourceType: 'owner_sample',
-              businessDate: getBusinessDate(),
-              notes,
-              createdAt: serverTimestamp(),
-            },
-            { merge: true },
-          )
-        }),
-      )
-
-      setFormMessage('Owner sample data loaded. The branch now has a small guide set for testing.')
-    } finally {
-      setIsSeeding(false)
-    }
-  }
-
   const recipeEditInventoryItem = inventoryItems.find((item) => item.id === recipeEditForm.inventoryItemId)
   const recipeEditUsageUnits = recipeEditInventoryItem ? getCompatibleUsageUnits(recipeEditInventoryItem.unit) : []
   const recipeEditStockQuantity =
@@ -1638,19 +1485,13 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
             <article className="panel">
               <div className="panel-header">
                 <div>
-                  <p className="eyebrow">Owner testing</p>
-                  <h2>Reset to sample data</h2>
+                  <p className="eyebrow">Owner walkthrough</p>
+                  <h2>Dashboard guide</h2>
                 </div>
-                <Database size={22} />
               </div>
               <p className="subtle">
-                Clears the current branch setup and loads a small guide set: a few menu items, inventory items,
-                recipe rules, and stock movement examples.
+                Replay the quick guide anytime while reviewing the owner dashboard with the team.
               </p>
-              <button className="primary-button seed-button" disabled={isSeeding} onClick={() => setIsSeedConfirmOpen(true)} type="button">
-                {isSeeding ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
-                Reset to sample data
-              </button>
               <button className="secondary-button seed-button" onClick={openTutorial} type="button">
                 <HelpCircle size={18} />
                 Replay dashboard guide
@@ -1971,16 +1812,6 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
           title="Delete recipe rule?"
         />
       ) : null}
-      {isSeedConfirmOpen ? (
-        <ConfirmActionModal
-          body="This will delete the current branch menu items, inventory items, recipe rules, reports test records, sync records, and stock movements, then load a small owner testing sample. Use this before owner onboarding, not after real data entry begins."
-          confirmLabel="Reset sample data"
-          isWorking={isSeeding}
-          onCancel={() => setIsSeedConfirmOpen(false)}
-          onConfirm={handleSeedBaselineData}
-          title="Reset branch to sample data?"
-        />
-      ) : null}
     </main>
   )
 }
@@ -2012,9 +1843,6 @@ function TutorialModal({
         <button aria-label="Close guide" className="icon-button tutorial-close" onClick={onClose} type="button">
           <X size={18} />
         </button>
-        <div className="tutorial-icon">
-          <HelpCircle size={26} />
-        </div>
         <p className="eyebrow">Dashboard guide</p>
         <h2 id="tutorial-title">{step.title}</h2>
         <p className="tutorial-copy">{step.body}</p>
@@ -2236,7 +2064,6 @@ function ConfirmDeleteModal({
             <p className="eyebrow">Confirm delete</p>
             <h2 id="delete-confirm-title">{title}</h2>
           </div>
-          <AlertTriangle size={22} />
         </div>
         <p className="confirm-body">{body}</p>
         <div className="modal-actions">
@@ -2246,50 +2073,6 @@ function ConfirmDeleteModal({
           </button>
           <button className="primary-button danger-button" disabled={isDeleting} onClick={onConfirm} type="button">
             {isDeleting ? <Loader2 className="spin" size={18} /> : <Trash2 size={18} />}
-            {confirmLabel}
-          </button>
-        </div>
-      </section>
-    </div>
-  )
-}
-
-function ConfirmActionModal({
-  body,
-  confirmLabel,
-  isWorking,
-  onCancel,
-  onConfirm,
-  title,
-}: {
-  body: string
-  confirmLabel: string
-  isWorking: boolean
-  onCancel: () => void
-  onConfirm: () => void
-  title: string
-}) {
-  return (
-    <div className="edit-modal-backdrop" role="presentation">
-      <section aria-labelledby="action-confirm-title" aria-modal="true" className="edit-modal confirm-modal" role="dialog">
-        <button aria-label="Close confirmation" className="icon-button tutorial-close" onClick={onCancel} type="button">
-          <X size={18} />
-        </button>
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Confirm action</p>
-            <h2 id="action-confirm-title">{title}</h2>
-          </div>
-          <Database size={22} />
-        </div>
-        <p className="confirm-body">{body}</p>
-        <div className="modal-actions">
-          <button className="secondary-button" disabled={isWorking} onClick={onCancel} type="button">
-            <X size={18} />
-            Cancel
-          </button>
-          <button className="primary-button" disabled={isWorking} onClick={onConfirm} type="button">
-            {isWorking ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
             {confirmLabel}
           </button>
         </div>

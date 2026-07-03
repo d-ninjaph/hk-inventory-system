@@ -8,10 +8,10 @@
     "firebase:login": "firebase login",
     "firebase:deploy:rules": "firebase deploy --only firestore",
     "firebase:deploy:hosting": "npm run dashboard:build && firebase deploy --only hosting",
-    "firebase:deploy": "npm run dashboard:build && firebase deploy"
+    "firebase:deploy": "npm run dashboard:build && firebase deploy",
+    "data:load-owner-sample": "node scripts/load-owner-sample-data.mjs --confirm"
   },
   "devDependencies": {
     "firebase-tools": "^15.0.0"
   }
 }
-

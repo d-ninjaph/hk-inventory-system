@@ -1262,17 +1262,6 @@ h2 {
   right: 14px;
 }
 
-.tutorial-icon {
-  width: 54px;
-  height: 54px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: #ffd91a;
-  color: #17120f;
-  border: 2px solid #17120f;
-}
-
 .tutorial-modal h2 {
   font-size: 1.45rem;
 }
