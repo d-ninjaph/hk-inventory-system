@@ -1220,7 +1220,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               </div>
               <form className="form-grid" onSubmit={handleCreateMenuItem}>
                 <label>
-                  Code
+                  <span className="label-with-help">
+                    Code
+                    <InfoTooltip text="Short label used on receipts and lists, such as HK1 or GUL-M." />
+                  </span>
                   <input
                     onChange={(event) => setMenuForm((form) => ({ ...form, code: event.target.value }))}
                     placeholder="ex: HK10"
@@ -1261,7 +1264,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   </span>
                 </label>
                 <label>
-                  Senior/PWD price
+                  <span className="label-with-help">
+                    Senior/PWD price
+                    <InfoTooltip text="Discounted selling price used when the customer qualifies for Senior or PWD pricing." />
+                  </span>
                   <span className="currency-field">
                     <span>PHP</span>
                     <input
@@ -1274,7 +1280,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   </span>
                 </label>
                 <label>
-                  Status
+                  <span className="label-with-help">
+                    Status
+                    <InfoTooltip text="Draft items stay hidden while details are incomplete. Ready items can be used for selling." />
+                  </span>
                   <FilterSelect
                     className="field-select"
                     onChange={(value) => setMenuForm((form) => ({ ...form, status: value }))}
@@ -1314,7 +1323,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   />
                 </label>
                 <label>
-                  Category
+                  <span className="label-with-help">
+                    Category
+                    <InfoTooltip text="Groups inventory so ingredients, packaging, sauces, drinks, and supplies are easier to filter." />
+                  </span>
                   <FilterSelect
                     className="field-select"
                     onChange={(value) => setInventoryForm((form) => ({ ...form, category: value }))}
@@ -1323,7 +1335,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   />
                 </label>
                 <label>
-                  Unit
+                  <span className="label-with-help">
+                    Unit
+                    <InfoTooltip text="Main counting unit for this item, such as pc, kilo, ml, or gallon." />
+                  </span>
                   <FilterSelect
                     className="field-select"
                     onChange={(value) => setInventoryForm((form) => ({ ...form, unit: value }))}
@@ -1332,7 +1347,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   />
                 </label>
                 <label>
-                  Status
+                  <span className="label-with-help">
+                    Status
+                    <InfoTooltip text="Active items are available for stock tracking. Archived items stay saved but are hidden from daily use." />
+                  </span>
                   <FilterSelect
                     className="field-select"
                     onChange={(value) => setInventoryForm((form) => ({ ...form, active: value }))}
@@ -1356,7 +1374,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   </span>
                 </label>
                 <label>
-                  Current stock
+                  <span className="label-with-help">
+                    Current stock
+                    <InfoTooltip text="The quantity currently available in the branch using this item's unit." />
+                  </span>
                   <input
                     min="0"
                     onChange={(event) => setInventoryForm((form) => ({ ...form, currentStock: event.target.value }))}
@@ -1368,7 +1389,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                   />
                 </label>
                 <label>
-                  Reorder reminder
+                  <span className="label-with-help">
+                    Reorder reminder
+                    <InfoTooltip text="When stock reaches this number or lower, the item appears in inventory alerts." />
+                  </span>
                   <input
                     min="0"
                     onChange={(event) =>
@@ -1423,7 +1447,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                     />
                   </label>
                   <label>
-                    Applies to
+                    <span className="label-with-help">
+                      Applies to
+                      <InfoTooltip text="Controls when this rule deducts stock: every sale, a required choice, an add-on, dine-in only, or take-out only." />
+                    </span>
                     <FilterSelect
                       className="field-select"
                       onChange={(value) => setRecipeBatchForm((form) => ({ ...form, appliesTo: value }))}
@@ -1541,7 +1568,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
             </div>
             <form className="form-grid" onSubmit={handleCreateMenuItem}>
               <label>
-                Code
+                <span className="label-with-help">
+                  Code
+                  <InfoTooltip text="Short label used on receipts and lists, such as HK1 or GUL-M." />
+                </span>
                 <input
                   onChange={(event) => setMenuForm((form) => ({ ...form, code: event.target.value }))}
                   required
@@ -1579,7 +1609,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </span>
               </label>
               <label>
-                Senior/PWD price
+                <span className="label-with-help">
+                  Senior/PWD price
+                  <InfoTooltip text="Discounted selling price used when the customer qualifies for Senior or PWD pricing." />
+                </span>
                 <span className="currency-field">
                   <span>PHP</span>
                   <input
@@ -1591,7 +1624,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </span>
               </label>
               <label>
-                Status
+                <span className="label-with-help">
+                  Status
+                  <InfoTooltip text="Draft items stay hidden while details are incomplete. Ready items can be used for selling." />
+                </span>
                 <FilterSelect
                   className="field-select"
                   onChange={(value) => setMenuForm((form) => ({ ...form, status: value }))}
@@ -1635,7 +1671,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 />
               </label>
               <label>
-                Category
+                <span className="label-with-help">
+                  Category
+                  <InfoTooltip text="Groups inventory so ingredients, packaging, sauces, drinks, and supplies are easier to filter." />
+                </span>
                 <FilterSelect
                   className="field-select"
                   onChange={(value) => setInventoryForm((form) => ({ ...form, category: value }))}
@@ -1644,7 +1683,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 />
               </label>
               <label>
-                Unit
+                <span className="label-with-help">
+                  Unit
+                  <InfoTooltip text="Main counting unit for this item, such as pc, kilo, ml, or gallon." />
+                </span>
                 <FilterSelect
                   className="field-select"
                   onChange={(value) => setInventoryForm((form) => ({ ...form, unit: value }))}
@@ -1653,7 +1695,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 />
               </label>
               <label>
-                Status
+                <span className="label-with-help">
+                  Status
+                  <InfoTooltip text="Active items are available for stock tracking. Archived items stay saved but are hidden from daily use." />
+                </span>
                 <FilterSelect
                   className="field-select"
                   onChange={(value) => setInventoryForm((form) => ({ ...form, active: value }))}
@@ -1676,7 +1721,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 </span>
               </label>
               <label>
-                Current stock
+                <span className="label-with-help">
+                  Current stock
+                  <InfoTooltip text="The quantity currently available in the branch using this item's unit." />
+                </span>
                 <input
                   min="0"
                   onChange={(event) => setInventoryForm((form) => ({ ...form, currentStock: event.target.value }))}
@@ -1687,7 +1735,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 />
               </label>
               <label>
-                Reorder reminder
+                <span className="label-with-help">
+                  Reorder reminder
+                  <InfoTooltip text="When stock reaches this number or lower, the item appears in inventory alerts." />
+                </span>
                 <input
                   min="0"
                   onChange={(event) =>
@@ -1739,7 +1790,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 />
               </label>
               <label>
-                Applies to
+                <span className="label-with-help">
+                  Applies to
+                  <InfoTooltip text="Controls when this rule deducts stock: every sale, a required choice, an add-on, dine-in only, or take-out only." />
+                </span>
                 <FilterSelect
                   className="field-select"
                   onChange={(value) =>
@@ -1781,7 +1835,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
                 />
               </label>
               <label>
-                Usage unit
+                <span className="label-with-help">
+                  Usage unit
+                  <InfoTooltip text="Unit entered for the recipe amount. The system converts it back to the inventory item's stock unit when needed." />
+                </span>
                 <FilterSelect
                   className="field-select"
                   disabled={!recipeEditInventoryItem}
@@ -2013,6 +2070,19 @@ function FilterSelect({
   )
 }
 
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <span className="info-tooltip">
+      <span aria-label={text} className="info-tooltip-trigger" role="button" tabIndex={0}>
+        <CircleHelp size={14} />
+      </span>
+      <span className="info-tooltip-content" role="tooltip">
+        {text}
+      </span>
+    </span>
+  )
+}
+
 function ChoiceGroupField({
   onChange,
   suggestions,
@@ -2024,7 +2094,10 @@ function ChoiceGroupField({
 }) {
   return (
     <label className="choice-group-field">
-      Choice group
+      <span className="label-with-help">
+        Choice group
+        <InfoTooltip text="Use this when customers must choose one option from a group, such as Siomai type or Drink size." />
+      </span>
       <div className="choice-group-picker">
         <input
           onChange={(event) => onChange(event.target.value)}
@@ -2235,7 +2308,10 @@ function StockMovementPanel({
           />
         </label>
         <label>
-          Movement
+          <span className="label-with-help">
+            Movement
+            <InfoTooltip text="Choose stock-in for deliveries, wastage/spoilage/mistake for deductions, or count adjustment to match an actual count." />
+          </span>
           <FilterSelect
             className="field-select"
             onChange={(value) => onChange((draft) => ({ ...draft, movementType: value as StockMovementKind }))}
@@ -2244,7 +2320,16 @@ function StockMovementPanel({
           />
         </label>
         <label>
-          {form.movementType === 'adjustment' ? 'Counted stock' : 'Quantity'}
+          <span className="label-with-help">
+            {form.movementType === 'adjustment' ? 'Counted stock' : 'Quantity'}
+            <InfoTooltip
+              text={
+                form.movementType === 'adjustment'
+                  ? 'Enter the actual counted stock. The system will set the item to this number.'
+                  : 'Enter how much stock is moving in or out, using the selected item unit.'
+              }
+            />
+          </span>
           <input
             min="0"
             onChange={(event) => onChange((draft) => ({ ...draft, quantity: event.target.value }))}
@@ -2256,7 +2341,10 @@ function StockMovementPanel({
           />
         </label>
         <label>
-          Business date
+          <span className="label-with-help">
+            Business date
+            <InfoTooltip text="Date this movement should appear under in reports." />
+          </span>
           <input
             onChange={(event) => onChange((draft) => ({ ...draft, businessDate: event.target.value }))}
             required
@@ -2350,7 +2438,10 @@ function ReportsPanel({
           <BarChart3 size={22} />
         </div>
         <label className="report-date-filter">
-          Business date
+          <span className="label-with-help">
+            Business date
+            <InfoTooltip text="Date used for reports. This may differ from the calendar day if the store closes after midnight." />
+          </span>
           <input
             onChange={(event) => setSelectedBusinessDate(event.target.value)}
             type="date"
@@ -2491,7 +2582,10 @@ function SyncPanel({
             <strong>{latestSync ? formatTimestamp(latestSync.createdAt) : 'None'}</strong>
           </div>
           <div>
-            <p>Pending records</p>
+            <p className="metric-label-with-help">
+              Pending records
+              <InfoTooltip text="Tablet records waiting to sync or still not confirmed by Firestore." />
+            </p>
             <strong>{pendingRecords}</strong>
           </div>
           <div>
@@ -3026,7 +3120,10 @@ function RecipeDraftRow({
     <div className="recipe-draft-row">
       <span className="line-number">{lineNumber}</span>
       <label>
-        Inventory item
+        <span className="label-with-help">
+          Inventory item
+          <InfoTooltip text="Ingredient, packaging, or supply that will be deducted when this recipe rule applies." />
+        </span>
         <FilterSelect
           className="field-select"
           onChange={(value) => onUpdate(line.id, 'inventoryItemId', value)}
@@ -3050,7 +3147,10 @@ function RecipeDraftRow({
         />
       </label>
       <label>
-        Usage unit
+        <span className="label-with-help">
+          Usage unit
+          <InfoTooltip text="Unit entered for the recipe amount. The system converts it back to the inventory item's stock unit when needed." />
+        </span>
         <FilterSelect
           className="field-select"
           disabled={!inventoryItem}
@@ -3197,7 +3297,10 @@ function SetupReadinessPanel({
         </div>
         <div className="readiness-row">
           <div>
-            <strong>Recipe coverage</strong>
+            <strong className="label-with-help">
+              Recipe coverage
+              <InfoTooltip text="Shows how many ready menu items already have recipe rules linked for stock deduction." />
+            </strong>
             <p>
               {readyMenuItemsWithRecipes} of {readyMenuItems.length} ready items linked
             </p>
@@ -3208,7 +3311,10 @@ function SetupReadinessPanel({
         </div>
         <div className="readiness-row">
           <div>
-            <strong>Stock alerts</strong>
+            <strong className="label-with-help">
+              Stock alerts
+              <InfoTooltip text="Items at or below their reorder reminder appear here for attention." />
+            </strong>
             <p>{stockAlerts ? `${stockAlerts} items need attention` : 'No reorder alerts'}</p>
           </div>
           <span className={`stock-status ${stockStatus === 'ready' ? 'ok' : 'reorder'}`}>
@@ -3217,7 +3323,10 @@ function SetupReadinessPanel({
         </div>
         <div className="readiness-row">
           <div>
-            <strong>Packaging</strong>
+            <strong className="label-with-help">
+              Packaging
+              <InfoTooltip text="Packaging inventory used by dine-in or take-out recipe rules, such as containers and lids." />
+            </strong>
             <p>{packagingItems} packaging items tracked</p>
           </div>
           <span className={`badge ${packagingItems ? 'ready' : 'draft'}`}>{packagingItems ? 'Ready' : 'Review'}</span>
