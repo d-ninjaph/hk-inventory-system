@@ -50,8 +50,8 @@ const sampleRecipeComponents = [
 ]
 
 const sampleStockMovements = [
-  ['noodles', 'stock_in', 5, 'Initial sample stock-in'],
-  ['beef-siomai', 'stock_in', 60, 'Initial sample delivery'],
+  ['noodles', 'stock_in', 5, 'Opening stock entry'],
+  ['beef-siomai', 'stock_in', 60, 'Opening delivery entry'],
 ]
 
 const collectionsToReset = [
@@ -213,7 +213,7 @@ async function seedSampleData(branchId) {
         sellingPrice,
         seniorPwdPrice,
         status: 'ready',
-        setupNotes: 'Owner sample item - replace with actual menu data',
+        setupNotes: 'Ready for daily selling',
         createdAt: now,
         updatedAt: now,
       }),

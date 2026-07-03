@@ -217,11 +217,11 @@ const tutorialSteps = [
   {
     section: 'Overview',
     title: 'Start with the daily snapshot',
-    body: 'Use Overview to check orders, sales, low-stock alerts, recipe setup progress, and the fastest links into setup work.',
+    body: 'Use Overview to check orders, sales, low-stock alerts, recipe coverage, and the fastest links into daily operating work.',
   },
   {
     section: 'Menu',
-    title: 'Set up what the branch sells',
+    title: 'Manage what the branch sells',
     body: 'Menu stores item codes, prices, Senior/PWD prices, and selling status. Keep items in draft until recipes are ready.',
   },
   {
@@ -247,7 +247,7 @@ const tutorialSteps = [
   {
     section: 'Settings',
     title: 'Use the guide anytime',
-    body: 'Settings keeps the dashboard guide available so owners can replay the walkthrough while they test the system.',
+    body: 'Settings keeps the dashboard guide available whenever the team needs a quick refresher.',
   },
 ] as const
 
@@ -397,6 +397,16 @@ function getMovementLabel(movementType: string) {
     .join(' ')
 }
 
+function getMovementSourceLabel(sourceType?: string) {
+  const labels: Record<string, string> = {
+    owner_dashboard: 'Dashboard entry',
+    owner_sample: 'Opening balance',
+    tablet_app: 'Tablet entry',
+  }
+
+  return sourceType ? (labels[sourceType] ?? getMovementLabel(sourceType)) : 'Manual entry'
+}
+
 function shouldShowCodeBadge(code: string) {
   return /^[A-Z]{1,3}\d{1,2}$/.test(code) && code.length <= 4
 }
@@ -471,7 +481,7 @@ function getMenuItemSubtitle(item: MenuItemRecord) {
     return `${item.category} - Archived, hidden from staff`
   }
 
-  return `${item.category} - Recipe review needed`
+  return `${item.category} - Add recipe rules before selling`
 }
 
 function getMenuStatusLabel(status: MenuItemRecord['status']) {
@@ -812,7 +822,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       await addDoc(collection(db, 'menuItems'), {
         ...payload,
         branchId: branch.id,
-        setupNotes: 'Recipe review needed',
+        setupNotes: 'Add recipe rules before selling',
         createdAt: serverTimestamp(),
       })
       setFormMessage('Menu item saved.')
@@ -1485,12 +1495,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
             <article className="panel">
               <div className="panel-header">
                 <div>
-                  <p className="eyebrow">Owner walkthrough</p>
+                  <p className="eyebrow">Help</p>
                   <h2>Dashboard guide</h2>
                 </div>
               </div>
               <p className="subtle">
-                Replay the quick guide anytime while reviewing the owner dashboard with the team.
+                Open the quick guide anytime the team needs a refresher on each dashboard section.
               </p>
               <button className="secondary-button seed-button" onClick={openTutorial} type="button">
                 <HelpCircle size={18} />
@@ -1499,11 +1509,11 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               {formMessage ? <p className="success-message">{formMessage}</p> : null}
             </article>
             <article className="panel">
-              <p className="eyebrow">Important</p>
-              <h2>Review before live use</h2>
+              <p className="eyebrow">Operating note</p>
+              <h2>Sauce tracking</h2>
               <p className="subtle">
-                Sauce usage is intentionally not forced per order because customers can add sauces freely. Track sauce
-                stock through opening and closing counts until the client confirms a standard serving estimate.
+                Sauces are tracked through opening and closing counts because customers can add them freely. If the
+                branch sets a standard serving amount later, the recipe rules can be updated.
               </p>
             </article>
           </section>
@@ -1850,7 +1860,7 @@ function TutorialModal({
           <span>{activeIndex + 1}</span>
           <div>
             <strong>{step.section}</strong>
-            <p>{isLastStep ? 'You are ready to review the system with the owner.' : 'This section is highlighted in the sidebar.'}</p>
+            <p>{isLastStep ? 'The guide is complete. Continue managing the dashboard anytime.' : 'This section is highlighted in the sidebar.'}</p>
           </div>
         </div>
         <div className="tutorial-progress" aria-label="Guide progress">
@@ -2322,7 +2332,7 @@ function ReportsPanel({
         getMovementLabel(movement.movementType),
         formatQuantity(movement.quantity),
         movement.unit || '',
-        movement.sourceType || 'Manual',
+        getMovementSourceLabel(movement.sourceType),
         movement.notes || '',
         formatTimestamp(movement.createdAt),
       ]),
@@ -2408,7 +2418,7 @@ function ReportsPanel({
                 <div>
                   <strong>{movement.inventoryItemName || movement.inventoryItemId}</strong>
                   <p>
-                    {getMovementLabel(movement.movementType)} - {movement.sourceType || 'Manual'} -{' '}
+                    {getMovementLabel(movement.movementType)} - {getMovementSourceLabel(movement.sourceType)} -{' '}
                     {formatDateOnly(movement.businessDate)}
                   </p>
                 </div>
@@ -2532,7 +2542,7 @@ function SyncPanel({
               </div>
             ))
           ) : (
-            <p className="empty-state">No day sessions are available for sync review yet.</p>
+            <p className="empty-state">No day sessions are available in sync history yet.</p>
           )}
         </div>
       </article>
@@ -3087,7 +3097,7 @@ function OwnerTestChecklistPanel({
   const checklistItems = [
     {
       done: menuItems.length > 0,
-      label: 'Add or review menu items',
+      label: 'Manage menu items',
       section: 'Menu' as ActiveSection,
     },
     {
@@ -3107,7 +3117,7 @@ function OwnerTestChecklistPanel({
     },
     {
       done: orders.length > 0 || stockMovements.length > 0,
-      label: 'Open Reports and test CSV export',
+      label: 'Open Reports and export a CSV file',
       section: 'Reports' as ActiveSection,
     },
   ]
@@ -3117,13 +3127,13 @@ function OwnerTestChecklistPanel({
     <article className="panel owner-checklist-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Owner QA</p>
-          <h2>First test checklist</h2>
+          <p className="eyebrow">Daily readiness</p>
+          <h2>Operating checklist</h2>
         </div>
         <ClipboardList size={22} />
       </div>
       <p className="subtle">
-        Follow these steps during the first owner walkthrough.
+        Keep these items complete so menu sales, stock counts, and reports stay accurate.
       </p>
       <div className="checklist-progress" aria-label={`${completedCount} of ${checklistItems.length} checklist items complete`}>
         <span style={{ width: `${(completedCount / checklistItems.length) * 100}%` }} />
