@@ -248,8 +248,8 @@ const tutorialSteps = [
   },
   {
     section: 'Settings',
-    title: 'Load starter data when needed',
-    body: 'Settings can seed the HK baseline menu, inventory, and recipe rules. You can replay this guide from there anytime.',
+    title: 'Prepare a clean sample when needed',
+    body: 'Settings can reset the branch to a small owner testing sample. Use it before onboarding, then let owners replace the sample with real data.',
   },
 ] as const
 
@@ -265,88 +265,29 @@ const pageSizeOptions = [10, 25, 50] as const
 
 const baselineMenuItems = [
   ['hk1', 'HK1', 'Regular HK Style Noodles + 2 pcs Siomai', 'Noodles', 55, 44],
-  ['hk2', 'HK2', 'Regular HK Style Noodles + 2 pcs Sharksfin/Japanese', 'Noodles', 59, 47.2],
-  ['hk3', 'HK3', 'Jumbo HK Style Noodles + 4 pcs Siomai', 'Noodles', 100, 80],
-  ['hk4', 'HK4', 'Jumbo HK Style Noodles + 4 pcs Sharksfin/Japanese', 'Noodles', 105, 84],
-  ['hk5', 'HK5', '4 pcs Siomai', 'Dimsum', 50, 40],
-  ['hk6', 'HK6', '4 pcs Sharksfin/Japanese Siomai', 'Dimsum', 55, 44],
-  ['hk7', 'HK7', 'Rice Toppings + 4 pcs Siomai', 'Rice Meals', 65, 52],
-  ['hk8', 'HK8', 'Rice Toppings + 4 pcs Sharksfin/Japanese', 'Rice Meals', 70, 56],
-  ['hk9', 'HK9', 'Siopao Asado', 'Dimsum', 40, 32],
   ['gulaman-medium', 'GUL-M', 'Black Gulaman Medium', 'Drinks', 20, 16],
-  ['gulaman-large', 'GUL-L', 'Black Gulaman Large', 'Drinks', 25, 20],
   ['addon-siomai', 'ADD-SIO', 'Additional Pork/Beef/Chicken Siomai or Wanton', 'Add-ons', 10, 8],
-  ['addon-premium', 'ADD-PRE', 'Additional Japanese Siomai or Sharksfin', 'Add-ons', 12, 9.6],
 ] as const
 
 const baselineInventoryItems = [
-  ['noodles', 'Chow mein noodles', 'Ingredient', 'kilo', 175, 0, 5],
-  ['rice', 'Rice', 'Ingredient', 'pc', 0, 0, 20],
-  ['regular-tumbler', 'Regular tumbler/container', 'Packaging', 'pc', 3.5, 0, 40],
-  ['jumbo-tumbler', 'Jumbo tumbler/container', 'Packaging', 'pc', 5.5, 0, 30],
-  ['regular-lid', 'Regular lid', 'Packaging', 'pc', 3, 0, 40],
-  ['large-lid', 'Large lid', 'Packaging', 'pc', 5, 0, 30],
-  ['cutlery', 'Cutlery', 'Packaging', 'pc', 0, 0, 50],
-  ['paper-bag', 'Paper bag', 'Packaging', 'pc', 0, 0, 30],
-  ['pork-siomai', 'Pork siomai', 'Ingredient', 'pc', 4, 0, 60],
-  ['beef-siomai', 'Beef siomai', 'Ingredient', 'pc', 4, 0, 60],
-  ['chicken-siomai', 'Chicken siomai', 'Ingredient', 'pc', 4, 0, 60],
-  ['wanton', 'Wanton', 'Ingredient', 'pc', 4, 0, 40],
-  ['sharksfin', 'Sharksfin', 'Ingredient', 'pc', 6.25, 0, 40],
-  ['japanese-siomai', 'Japanese siomai', 'Ingredient', 'pc', 6.25, 0, 40],
-  ['siopao-asado', 'Siopao Asado', 'Ingredient', 'pc', 30, 0, 12],
-  ['teriyaki-sauce', 'Teriyaki sauce', 'Sauce', 'gallon', 290, 0, 0.5],
-  ['peanut-mongolian-sauce', 'Peanut Mongolian sauce', 'Sauce', 'gallon', 290, 0, 0.5],
-  ['korean-bbq-sauce', 'Korean BBQ sauce', 'Sauce', 'gallon', 230, 0, 0.5],
-  ['sweet-brown-sauce', 'Sweet brown sauce', 'Sauce', 'gallon', 290, 0, 0.5],
-  ['chili-oil-mild', 'Chili oil mild', 'Sauce', 'ml', 175, 0, 500],
-  ['chili-oil-extra-spicy', 'Chili oil extra spicy', 'Sauce', 'ml', 265, 0, 500],
-  ['gulaman-powder', 'Gulaman powder', 'Ingredient', 'kilo', 395, 0, 1],
+  ['noodles', 'Chow mein noodles', 'Ingredient', 'kilo', 175, 5, 2],
+  ['beef-siomai', 'Beef siomai', 'Ingredient', 'pc', 4, 60, 20],
+  ['regular-tumbler', 'Regular tumbler/container', 'Packaging', 'pc', 3.5, 25, 10],
+  ['gulaman-powder', 'Gulaman powder', 'Ingredient', 'kilo', 395, 2, 1],
   ['caramel-powder', 'Caramel powder', 'Ingredient', 'pc', 5, 0, 10],
 ] as const
 
 const baselineRecipeComponents = [
   ['hk1', 'noodles', 0.08, 'base', ''],
-  ['hk1', 'pork-siomai', 2, 'choice', 'Siomai choice'],
   ['hk1', 'beef-siomai', 2, 'choice', 'Siomai choice'],
-  ['hk1', 'chicken-siomai', 2, 'choice', 'Siomai choice'],
-  ['hk1', 'wanton', 2, 'choice', 'Siomai choice'],
   ['hk1', 'regular-tumbler', 1, 'take_out', ''],
-  ['hk1', 'regular-lid', 1, 'take_out', ''],
-  ['hk1', 'cutlery', 1, 'take_out', ''],
-  ['hk1', 'paper-bag', 1, 'take_out', ''],
-  ['hk2', 'noodles', 0.08, 'base', ''],
-  ['hk2', 'sharksfin', 2, 'choice', 'Premium choice'],
-  ['hk2', 'japanese-siomai', 2, 'choice', 'Premium choice'],
-  ['hk3', 'noodles', 0.12, 'base', ''],
-  ['hk3', 'pork-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk3', 'beef-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk3', 'chicken-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk3', 'wanton', 4, 'choice', 'Siomai choice'],
-  ['hk3', 'jumbo-tumbler', 1, 'take_out', ''],
-  ['hk3', 'large-lid', 1, 'take_out', ''],
-  ['hk4', 'noodles', 0.12, 'base', ''],
-  ['hk4', 'sharksfin', 4, 'choice', 'Premium choice'],
-  ['hk4', 'japanese-siomai', 4, 'choice', 'Premium choice'],
-  ['hk5', 'pork-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk5', 'beef-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk5', 'chicken-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk5', 'wanton', 4, 'choice', 'Siomai choice'],
-  ['hk6', 'sharksfin', 4, 'choice', 'Premium choice'],
-  ['hk6', 'japanese-siomai', 4, 'choice', 'Premium choice'],
-  ['hk7', 'rice', 1, 'base', ''],
-  ['hk7', 'pork-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk7', 'beef-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk7', 'chicken-siomai', 4, 'choice', 'Siomai choice'],
-  ['hk7', 'wanton', 4, 'choice', 'Siomai choice'],
-  ['hk8', 'rice', 1, 'base', ''],
-  ['hk8', 'sharksfin', 4, 'choice', 'Premium choice'],
-  ['hk8', 'japanese-siomai', 4, 'choice', 'Premium choice'],
-  ['hk9', 'siopao-asado', 1, 'base', ''],
   ['gulaman-medium', 'gulaman-powder', 0.02, 'base', ''],
   ['gulaman-medium', 'caramel-powder', 1, 'base', ''],
-  ['gulaman-large', 'gulaman-powder', 0.03, 'base', ''],
-  ['gulaman-large', 'caramel-powder', 1, 'base', ''],
+] as const
+
+const baselineStockMovements = [
+  ['noodles', 'stock_in', 5, 'Initial sample stock-in'],
+  ['beef-siomai', 'stock_in', 60, 'Initial sample delivery'],
 ] as const
 
 function branchDocId(branchId: string, seedId: string) {
@@ -1175,6 +1116,16 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
 
     try {
       await Promise.all([
+        ...menuItems.map((item) => deleteDoc(doc(db, 'menuItems', item.id))),
+        ...inventoryItems.map((item) => deleteDoc(doc(db, 'inventoryItems', item.id))),
+        ...recipeComponents.map((component) => deleteDoc(doc(db, 'recipeComponents', component.id))),
+        ...stockMovements.map((movement) => deleteDoc(doc(db, 'stockMovements', movement.id))),
+        ...orders.map((order) => deleteDoc(doc(db, 'orders', order.id))),
+        ...daySessions.map((session) => deleteDoc(doc(db, 'daySessions', session.id))),
+        ...syncEvents.map((event) => deleteDoc(doc(db, 'syncEvents', event.id))),
+      ])
+
+      await Promise.all([
         ...baselineMenuItems.map(([seedId, code, name, category, sellingPrice, seniorPwdPrice]) =>
           setDoc(
             doc(db, 'menuItems', branchDocId(branch.id, seedId)),
@@ -1185,8 +1136,8 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
               category,
               sellingPrice,
               seniorPwdPrice,
-              status: 'draft',
-              setupNotes: 'Recipe review needed',
+              status: 'ready',
+              setupNotes: 'Owner sample item - replace with actual menu data',
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             },
@@ -1247,7 +1198,30 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
         }),
       )
 
-      setFormMessage('Starter HK menu, inventory, and recipe data loaded.')
+      await Promise.all(
+        baselineStockMovements.map(([inventorySeedId, movementType, quantity, notes]) => {
+          const inventoryItem = baselineInventoryItems.find(([seedId]) => seedId === inventorySeedId)
+
+          return setDoc(
+            doc(db, 'stockMovements', branchDocId(branch.id, `sample_${movementType}_${inventorySeedId}`)),
+            {
+              branchId: branch.id,
+              inventoryItemId: branchDocId(branch.id, inventorySeedId),
+              inventoryItemName: inventoryItem?.[1] ?? inventorySeedId,
+              movementType,
+              quantity,
+              unit: inventoryItem?.[3] ?? 'pc',
+              sourceType: 'owner_sample',
+              businessDate: getBusinessDate(),
+              notes,
+              createdAt: serverTimestamp(),
+            },
+            { merge: true },
+          )
+        }),
+      )
+
+      setFormMessage('Owner sample data loaded. The branch now has a small guide set for testing.')
     } finally {
       setIsSeeding(false)
     }
@@ -1664,18 +1638,18 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
             <article className="panel">
               <div className="panel-header">
                 <div>
-                  <p className="eyebrow">Starter setup</p>
-                  <h2>Load HK baseline data</h2>
+                  <p className="eyebrow">Owner testing</p>
+                  <h2>Reset to sample data</h2>
                 </div>
                 <Database size={22} />
               </div>
               <p className="subtle">
-                Adds starter menu, inventory, and recipe rules based on the standee and supplier discounted prices.
-                Existing seeded records are updated, not duplicated.
+                Clears the current branch setup and loads a small guide set: a few menu items, inventory items,
+                recipe rules, and stock movement examples.
               </p>
               <button className="primary-button seed-button" disabled={isSeeding} onClick={() => setIsSeedConfirmOpen(true)} type="button">
                 {isSeeding ? <Loader2 className="spin" size={18} /> : <Database size={18} />}
-                Load starter data
+                Reset to sample data
               </button>
               <button className="secondary-button seed-button" onClick={openTutorial} type="button">
                 <HelpCircle size={18} />
@@ -1999,12 +1973,12 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
       ) : null}
       {isSeedConfirmOpen ? (
         <ConfirmActionModal
-          body="This will load or update the starter HK menu, inventory, and recipe rules. Use it only when setting up or refreshing baseline data."
-          confirmLabel="Load starter data"
+          body="This will delete the current branch menu items, inventory items, recipe rules, reports test records, sync records, and stock movements, then load a small owner testing sample. Use this before owner onboarding, not after real data entry begins."
+          confirmLabel="Reset sample data"
           isWorking={isSeeding}
           onCancel={() => setIsSeedConfirmOpen(false)}
           onConfirm={handleSeedBaselineData}
-          title="Load starter data?"
+          title="Reset branch to sample data?"
         />
       ) : null}
     </main>
