@@ -2,15 +2,16 @@
   "name": "hk-inventory-system",
   "private": true,
   "version": "0.1.0",
-    "scripts": {
+  "scripts": {
     "dashboard:dev": "npm --prefix apps/web-dashboard run dev",
     "dashboard:build": "npm --prefix apps/web-dashboard run build",
     "tablet:dev": "npm --prefix apps/tablet-app run dev",
     "tablet:build": "npm --prefix apps/tablet-app run build",
+    "hosting:build": "npm run dashboard:build && npm run tablet:build && node scripts/prepare-hosting.mjs",
     "firebase:login": "firebase login",
     "firebase:deploy:rules": "firebase deploy --only firestore",
-    "firebase:deploy:hosting": "npm run dashboard:build && firebase deploy --only hosting",
-    "firebase:deploy": "npm run dashboard:build && firebase deploy",
+    "firebase:deploy:hosting": "npm run hosting:build && firebase deploy --only hosting",
+    "firebase:deploy": "npm run hosting:build && firebase deploy",
     "data:load-owner-sample": "node scripts/load-owner-sample-data.mjs --confirm"
   },
   "devDependencies": {

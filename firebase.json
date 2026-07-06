@@ -4,9 +4,13 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "apps/web-dashboard/dist",
+    "public": "dist/hosting",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      {
+        "source": "/tablet/**",
+        "destination": "/tablet/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"
