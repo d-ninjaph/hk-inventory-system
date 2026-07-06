@@ -16,17 +16,16 @@
 
 ## 3. Staff Tablet App
 
-- Local staff PIN login.
-- Start day.
+- Tablet-first MVP lives in `apps/tablet-app` as a React/Vite app for immediate UI and sync testing.
+- Staff sign-in through Firebase Email/Password for the MVP.
+- Start day and end day.
 - Take orders.
 - Select dine-in or take-out.
-- Select siomai/dimsum choices.
-- Add toppings.
-- Apply Senior/PWD discounts when enabled.
-- Record stock-in and wastage.
-- Review low-stock alerts.
-- Complete EOD count.
-- Sync when online.
+- Select required choices.
+- Apply Senior/PWD pricing when enabled.
+- Queue orders locally when offline.
+- Sync orders, stock movements, day sessions, and sync events when online.
+- Record stock-in from low-stock alerts.
 
 ## 4. Owner Web Dashboard
 
@@ -46,9 +45,11 @@ Current implemented baseline:
 - Firestore-backed menu item creation/listing.
 - Firestore-backed inventory item creation/listing.
 - Firestore-backed recipe/BOM batch rule creation/listing/removal.
-- Starter HK menu, inventory, and recipe seed action.
+- Owner sample data loader for menu, inventory, recipes, and opening stock movements.
 - Menu and inventory edit flows.
 - Unit dropdowns and clearer currency fields for setup forms.
+- Owner-facing pagination, filters, confirmation modals, and contextual help tooltips.
+- Tablet MVP scaffold with ordering, local pending queue, stock deduction sync, stock-in, and day-session sync.
 
 ## 5. Testing
 

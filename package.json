@@ -2,9 +2,11 @@
   "name": "hk-inventory-system",
   "private": true,
   "version": "0.1.0",
-  "scripts": {
+    "scripts": {
     "dashboard:dev": "npm --prefix apps/web-dashboard run dev",
     "dashboard:build": "npm --prefix apps/web-dashboard run build",
+    "tablet:dev": "npm --prefix apps/tablet-app run dev",
+    "tablet:build": "npm --prefix apps/tablet-app run build",
     "firebase:login": "firebase login",
     "firebase:deploy:rules": "firebase deploy --only firestore",
     "firebase:deploy:hosting": "npm run dashboard:build && firebase deploy --only hosting",

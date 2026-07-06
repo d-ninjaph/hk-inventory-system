@@ -35,7 +35,14 @@ service cloud.firestore {
 
     match /inventoryItems/{itemId} {
       allow read: if isStaff();
-      allow write: if isOwnerOrAdmin();
+      allow create, delete: if isOwnerOrAdmin();
+      allow update: if isOwnerOrAdmin()
+        || (
+          isStaff()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentStock', 'updatedAt'])
+          && request.resource.data.currentStock is number
+          && request.resource.data.currentStock >= 0
+        );
     }
 
     match /recipeComponents/{componentId} {
@@ -73,4 +80,3 @@ service cloud.firestore {
     }
   }
 }
-
