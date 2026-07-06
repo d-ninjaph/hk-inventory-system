@@ -176,6 +176,7 @@ function App() {
   const [branch, setBranch] = useState<Branch | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
@@ -392,7 +393,7 @@ function App() {
     )
   }
 
-  function queueOrder() {
+  async function queueOrder() {
     if (!branch || !profile || !cart.length || !daySession || daySession.status !== 'open') {
       setMessage('Start the day and add at least one item before placing an order.')
       return
@@ -414,10 +415,31 @@ function App() {
       status: 'pending_sync',
     }
 
-    setLocalOrders((orders) => [order, ...orders])
     setCart([])
     setDiscountType('none')
-    setMessage(isOnline ? 'Order saved. Tap Sync to send it to the dashboard.' : 'Order saved offline.')
+
+    if (!isOnline) {
+      setLocalOrders((orders) => [order, ...orders])
+      setMessage('Order saved offline. Sync when internet is available.')
+      return
+    }
+
+    setIsPlacingOrder(true)
+    setMessage('Saving order...')
+
+    try {
+      await syncOrder(order)
+      const syncedOrder = { ...order, status: 'synced' as const, syncedAtIso: new Date().toISOString() }
+      const nextOrders = [syncedOrder, ...localOrders]
+      setLocalOrders(nextOrders)
+      await syncDaySession(nextOrders.filter((savedOrder) => savedOrder.status === 'pending_sync').length)
+      setMessage('Order placed and synced.')
+    } catch (error) {
+      setLocalOrders((orders) => [order, ...orders])
+      setMessage(error instanceof Error ? `Order saved locally, but sync failed: ${error.message}` : 'Order saved locally, but sync failed.')
+    } finally {
+      setIsPlacingOrder(false)
+    }
   }
 
   async function syncOrder(order: LocalOrder) {
@@ -733,10 +755,30 @@ function App() {
             <span>Net total</span>
             <strong>{money(totals.netAmount)}</strong>
           </div>
-          <button className="primary-button checkout-button" disabled={!cart.length} onClick={queueOrder} type="button">
-            <ReceiptText size={20} />
-            Place order
+          {!daySession || daySession.status !== 'open' ? (
+            <p className="cart-helper">Start the business day before placing orders.</p>
+          ) : null}
+          <button
+            className="primary-button checkout-button"
+            disabled={!cart.length || !daySession || daySession.status !== 'open' || isPlacingOrder}
+            onClick={queueOrder}
+            type="button"
+          >
+            {isPlacingOrder ? <Loader2 className="spin" size={20} /> : <ReceiptText size={20} />}
+            {isPlacingOrder ? 'Placing order...' : 'Place order'}
           </button>
+          {localOrders.length ? (
+            <div className="recent-orders">
+              <strong>Recent orders</strong>
+              {localOrders.slice(0, 4).map((order) => (
+                <div className="recent-order-row" key={order.id}>
+                  <span>{new Date(order.createdAtIso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>{money(order.netAmount)}</span>
+                  <em className={order.status === 'synced' ? 'synced' : 'pending'}>{order.status === 'synced' ? 'Synced' : 'Pending'}</em>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </aside>
 
         <section className="alerts-panel">
