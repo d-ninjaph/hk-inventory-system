@@ -5,6 +5,10 @@ export type Branch = {
   name: string
   location: string
   active: boolean
+  tabletCatalogStatus?: 'draft' | 'published'
+  tabletCatalogPublishedAt?: Timestamp
+  tabletCatalogPublishedBy?: string
+  tabletCatalogUpdatedAt?: Timestamp
 }
 
 export type UserProfile = {

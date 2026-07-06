@@ -70,6 +70,10 @@ type Branch = {
   name: string
   location: string
   active: boolean
+  tabletCatalogStatus?: 'draft' | 'published'
+  tabletCatalogPublishedAt?: Timestamp
+  tabletCatalogPublishedBy?: string
+  tabletCatalogUpdatedAt?: Timestamp
   createdAt?: Timestamp
 }
 
@@ -643,6 +647,10 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   })
   const [recipeRuleToDelete, setRecipeRuleToDelete] = useState<RecipeComponentRecord | null>(null)
   const [isDeletingRule, setIsDeletingRule] = useState(false)
+  const [tabletCatalogStatus, setTabletCatalogStatus] = useState<Branch['tabletCatalogStatus']>(
+    branch.tabletCatalogStatus ?? 'draft',
+  )
+  const [isUpdatingTabletCatalog, setIsUpdatingTabletCatalog] = useState(false)
   const [formMessage, setFormMessage] = useState('')
   const [isTutorialOpen, setIsTutorialOpen] = useState(() => {
     if (typeof window === 'undefined') {
@@ -654,6 +662,7 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0)
   const todayBusinessDate = getBusinessDate()
   const branchStatus = useMemo(() => (branch.active ? 'Active branch' : 'Inactive branch'), [branch.active])
+  const isTabletCatalogPublished = tabletCatalogStatus === 'published'
   const reorderCount = inventoryItems.filter((item) => getStockStatus(item) === 'Reorder' || getStockStatus(item) === 'Critical').length
   const todayOrders = orders.filter((order) => order.businessDate === todayBusinessDate && isOpenOrder(order))
   const todaySales = todayOrders.reduce((total, order) => total + (order.netAmount ?? order.grossAmount ?? 0), 0)
@@ -1062,6 +1071,29 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
 
     resetRecipeEditForm()
     setFormMessage('Recipe rule updated.')
+  }
+
+  async function handleToggleTabletCatalog() {
+    setIsUpdatingTabletCatalog(true)
+    setFormMessage('')
+
+    const nextStatus: Branch['tabletCatalogStatus'] = isTabletCatalogPublished ? 'draft' : 'published'
+
+    try {
+      await updateDoc(doc(db, 'branches', branch.id), {
+        tabletCatalogPublishedAt: nextStatus === 'published' ? serverTimestamp() : null,
+        tabletCatalogPublishedBy: nextStatus === 'published' ? profile.email : null,
+        tabletCatalogStatus: nextStatus,
+        tabletCatalogUpdatedAt: serverTimestamp(),
+        tabletCatalogUnpublishedAt: nextStatus === 'draft' ? serverTimestamp() : null,
+      })
+      setTabletCatalogStatus(nextStatus)
+      setFormMessage(nextStatus === 'published' ? 'Tablet catalog published.' : 'Tablet catalog paused.')
+    } catch (error) {
+      setFormMessage(error instanceof Error ? error.message : 'Unable to update the tablet catalog.')
+    } finally {
+      setIsUpdatingTabletCatalog(false)
+    }
   }
 
   function requestDeleteRecipeComponent(component: RecipeComponentRecord) {
@@ -1519,6 +1551,30 @@ function Dashboard({ branch, profile }: { branch: Branch; profile: UserProfile }
 
         {activeSection === 'Settings' ? (
           <section className="screen-grid">
+            <article className="panel tablet-catalog-panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Tablet app</p>
+                  <h2>Tablet catalog</h2>
+                </div>
+                <span className={isTabletCatalogPublished ? 'badge ready' : 'badge draft'}>
+                  {isTabletCatalogPublished ? 'Published' : 'Draft'}
+                </span>
+              </div>
+              <p className="subtle">
+                Keep the tablet empty while the menu, inventory, and recipe rules are still being prepared. Publish
+                when staff should start using the current setup for orders.
+              </p>
+              <button
+                className={isTabletCatalogPublished ? 'secondary-button seed-button' : 'primary-button seed-button'}
+                disabled={isUpdatingTabletCatalog}
+                onClick={handleToggleTabletCatalog}
+                type="button"
+              >
+                {isUpdatingTabletCatalog ? <Loader2 className="spin" size={18} /> : <Cloud size={18} />}
+                {isTabletCatalogPublished ? 'Pause tablet catalog' : 'Publish to tablet'}
+              </button>
+            </article>
             <article className="panel">
               <div className="panel-header">
                 <div>

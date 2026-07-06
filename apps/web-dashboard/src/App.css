@@ -1028,6 +1028,14 @@ h2 {
   margin-top: 18px;
 }
 
+.tablet-catalog-panel .panel-header {
+  align-items: flex-start;
+}
+
+.tablet-catalog-panel .badge {
+  margin-top: 2px;
+}
+
 .item-badge {
   width: 46px;
   height: 46px;

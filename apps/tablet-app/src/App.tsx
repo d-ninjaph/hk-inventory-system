@@ -174,6 +174,7 @@ function App() {
   const [authUser, setAuthUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [branch, setBranch] = useState<Branch | null>(null)
+  const [branchId, setBranchId] = useState('')
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
@@ -196,6 +197,7 @@ function App() {
   const deviceId = useMemo(() => getDeviceId(), [])
   const pendingOrders = localOrders.filter((order) => order.status === 'pending_sync')
   const totals = getOrderTotals(cart, discountType)
+  const isCatalogPublished = branch?.tabletCatalogStatus === 'published'
   const visibleMenuItems = menuItems.filter(
     (item) => item.status === 'ready' && (activeCategory === 'All' || item.category === activeCategory),
   )
@@ -209,6 +211,7 @@ function App() {
       if (!user) {
         setProfile(null)
         setBranch(null)
+        setBranchId('')
         return
       }
 
@@ -218,15 +221,37 @@ function App() {
 
       if (!nextProfile || !firstBranchId) {
         setMessage('No branch access found for this account.')
+        setProfile(null)
+        setBranch(null)
+        setBranchId('')
         return
       }
 
-      const branchSnap = await getDoc(doc(db, 'branches', firstBranchId))
-
       setProfile(nextProfile)
-      setBranch(branchSnap.exists() ? ({ id: branchSnap.id, ...branchSnap.data() } as Branch) : null)
+      setBranchId(firstBranchId)
     })
   }, [])
+
+  useEffect(() => {
+    if (!branchId) {
+      return undefined
+    }
+
+    return onSnapshot(doc(db, 'branches', branchId), (snapshot) => {
+      const nextBranch = snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Branch) : null
+
+      if (nextBranch?.tabletCatalogStatus !== 'published') {
+        setMenuItems([])
+        setInventoryItems([])
+        setRecipeComponents([])
+        setCart([])
+        setConfiguringMenuItem(null)
+        setActiveCategory('All')
+      }
+
+      setBranch(nextBranch)
+    })
+  }, [branchId])
 
   useEffect(() => {
     function updateOnlineStatus() {
@@ -243,7 +268,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!branch) {
+    if (!branch?.id || !isCatalogPublished) {
       return undefined
     }
 
@@ -275,7 +300,7 @@ function App() {
       unsubscribeInventory()
       unsubscribeRecipes()
     }
-  }, [branch])
+  }, [branch?.id, isCatalogPublished])
 
   useEffect(() => {
     storeOrders(localOrders)
@@ -293,6 +318,11 @@ function App() {
 
   function startDay() {
     if (!branch) {
+      return
+    }
+
+    if (!isCatalogPublished) {
+      setMessage('The tablet menu is not ready yet. Publish the tablet catalog from the owner dashboard first.')
       return
     }
 
@@ -394,6 +424,11 @@ function App() {
   }
 
   async function queueOrder() {
+    if (!isCatalogPublished) {
+      setMessage('The tablet menu is not ready yet. Publish the tablet catalog from the owner dashboard first.')
+      return
+    }
+
     if (!branch || !profile || !cart.length || !daySession || daySession.status !== 'open') {
       setMessage('Start the day and add at least one item before placing an order.')
       return
@@ -552,6 +587,11 @@ function App() {
   }
 
   async function recordStockIn(item: InventoryItem) {
+    if (!isCatalogPublished) {
+      setMessage('The tablet inventory list is not ready yet. Publish the tablet catalog from the owner dashboard first.')
+      return
+    }
+
     if (!branch || !daySession) {
       setMessage('Start the day before recording stock.')
       return
@@ -632,6 +672,10 @@ function App() {
             {isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
             {isOnline ? 'Online' : 'Offline'}
           </span>
+          <span className={isCatalogPublished ? 'status-pill published' : 'status-pill waiting'}>
+            {isCatalogPublished ? <Check size={18} /> : <AlertTriangle size={18} />}
+            {isCatalogPublished ? 'Catalog ready' : 'Waiting for setup'}
+          </span>
           <button className="secondary-button" onClick={() => signOut(auth)} type="button">
             <LogOut size={18} />
             Sign out
@@ -654,7 +698,7 @@ function App() {
         </div>
         <div className="day-actions">
           {!daySession || daySession.status === 'closed' ? (
-            <button className="primary-button" onClick={startDay} type="button">
+            <button className="primary-button" disabled={!isCatalogPublished} onClick={startDay} type="button">
               <ChefHat size={18} />
               Start day
             </button>
@@ -673,6 +717,19 @@ function App() {
 
       {message ? <p className="message">{message}</p> : null}
 
+      {!isCatalogPublished ? (
+        <section className="catalog-empty-panel">
+          <AlertTriangle size={30} />
+          <div>
+            <p>Tablet setup</p>
+            <h2>Waiting for the owner dashboard</h2>
+            <span>
+              The tablet is intentionally empty for now. Once the web app has the correct menu items, inventory,
+              and recipe rules, publish the tablet catalog from Settings and this screen will load the live data.
+            </span>
+          </div>
+        </section>
+      ) : (
       <section className="tablet-grid">
         <section className="menu-surface">
           <div className="section-heading">
@@ -809,6 +866,7 @@ function App() {
           </div>
         </section>
       </section>
+      )}
 
       {configuringMenuItem ? (
         <div className="modal-backdrop">

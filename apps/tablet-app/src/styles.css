@@ -216,6 +216,16 @@ button {
   color: #8a6100;
 }
 
+.status-pill.published {
+  background: #e7f6e6;
+  color: #236c2e;
+}
+
+.status-pill.waiting {
+  background: #ffe2e0;
+  color: #a4141c;
+}
+
 .day-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(120px, 1fr)) minmax(260px, 1.3fr);
@@ -241,6 +251,49 @@ button {
     "alerts cart";
   gap: 16px;
   align-items: start;
+}
+
+.catalog-empty-panel {
+  min-height: 360px;
+  border: 1px solid #e9dfd1;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 620px);
+  align-content: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 28px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(65, 35, 15, 0.08);
+}
+
+.catalog-empty-panel svg {
+  color: #c98200;
+}
+
+.catalog-empty-panel p,
+.catalog-empty-panel h2,
+.catalog-empty-panel span {
+  margin: 0;
+}
+
+.catalog-empty-panel p {
+  color: #806f5c;
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.catalog-empty-panel h2 {
+  margin: 3px 0 8px;
+  font-size: 1.5rem;
+}
+
+.catalog-empty-panel span {
+  display: block;
+  color: #6f6256;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .menu-surface {
